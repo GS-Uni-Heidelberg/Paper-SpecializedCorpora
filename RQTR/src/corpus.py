@@ -89,15 +89,31 @@ class FrequencyCorpus(Corpus):
         filter: None | Callable = utils.contains_alphab,
         language: str = 'de'
     ):
-        super.__init__(docs, filter, language)
+        super().__init__(docs, filter, language)
         self.size = dict()
         self.unique = dict()
         self.ngram_counts = dict()
         self.ngram_doccounts = dict()
 
-    def get_ngrams(self, n):
-        ngram_counts = self.ngram_counts.get(n, None)
+    def get_ngrams(
+        self,
+        n: int,
+        filter: Callable = lambda x, y: True
+    ):
+        """
+        Get the counts of all ngrams in the corpus.
 
+        Arguments:
+            n (int): The size of the ngrams.
+            filter (callable): A function to filter out unwanted ngrams,
+                e.g. those containing stopwords.
+
+        Returns:
+            dict: A dictionary of ngrams and their counts.
+        """
+
+        # If the ngrams have already been computed, return them
+        ngram_counts = self.ngram_counts.get(n, None)
         if ngram_counts is not None:
             return ngram_counts
 
@@ -108,7 +124,7 @@ class FrequencyCorpus(Corpus):
             seen_ngrams = set()
             for i in range(len(doc) - n + 1):
                 ngram = tuple(doc[i:i + n])
-                if all(self.filter(word, self.language) for word in ngram):
+                if all(filter(word, self._language) for word in ngram):
                     ngrams.append(ngram)
                     if ngram not in seen_ngrams:
                         ngram_doccount[ngram] = (
