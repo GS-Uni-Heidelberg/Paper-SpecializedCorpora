@@ -1,6 +1,7 @@
 import re
 from tqdm import tqdm
-import utils
+from .. import token_util as utils
+from ..corpus import Corpus
 
 
 class term_counts:
@@ -43,70 +44,68 @@ class term_counts:
         )
 
 
-def get_values(
-    terms, core_term, qtr_base, corpus, lower=True,
-):
+# def get_values(
+#     terms: list[str],
+#     core_term: str,
+#     qtr_base: float,
+#     corpus: Corpus,
+#     lower=True,
+# ):
 
-    counts = []
-    for term in terms:
-        try:
-            counts.append(term_counts(term, core_term, 0, 0))
-        except re.error:
-            counts.append(None)
+#     counts = []
+#     for term in terms:
+#         try:
+#             counts.append(term_counts(term, core_term, 0, 0))
+#         except re.error:
+#             counts.append(None)
 
-    for doc in tqdm(corpus):
-        doc = transform_doc(doc)
-        for term in counts:
-            if term is None:
-                continue
-            contains_core_term = (core_term[0] in doc or core_term[1] in doc)
-            if term.term in doc:
-                term.term_count += 1
-                if contains_core_term:
-                    term.coocurrence_count += 1
+#     for doc in tqdm(corpus.lemmas):
+#         doc = set(doc)
+#         for term in counts:
+#             if term is None:
+#                 continue
+#             contains_core_term = (core_term[0] in doc or core_term[1] in doc)
+#             if term.term in doc:
+#                 term.term_count += 1
+#                 if contains_core_term:
+#                     term.coocurrence_count += 1
 
-    return counts
-
-
-def transform_doc(doc, lower=True):
-    if lower:
-        doc = {word.lower() for word in doc}
-    else:
-        doc = set(doc)
-    return doc
+#     return counts
 
 
-def get_possible_values(
-    core_terms, qtr_base, corpus, lower=True,
-    min_count=3
-):
+# def get_possible_values(
+#     core_terms, qtr_base, corpus, lower=True,
+#     min_count=3
+# ):
 
-    relevant_docs = []
-    for doc in tqdm(
-        corpus, desc="Finding relevant documents with the core term"
-    ):
-        doccopy = transform_doc(doc, lower)
-        if core_terms[1] in doc or core_terms[2] in doccopy:
-            relevant_docs.append(doc)
+#     relevant_docs = []
+#     for doc in tqdm(
+#         corpus, desc="Finding relevant documents with the core term"
+#     ):
+#         doccopy = set(doc)
+#         if core_terms[1] in doc or core_terms[2] in doccopy:
+#             relevant_docs.append(doc)
 
-    all_words = all_corpus_words(relevant_docs)
-    all_words = [word for word in all_words if all_words[word] >= min_count]
+#     all_words = all_corpus_words(relevant_docs)
+#     all_words = [word for word in all_words if all_words[word] >= min_count]
 
-    print(f'Found {len(all_words)} relevant words in the corpus')
+#     print(f'Found {len(all_words)} relevant words in the corpus')
 
-    values = get_values(
-        all_words, core_terms, qtr_base, corpus, lower
-    )
+#     values = get_values(
+#         all_words, core_terms, qtr_base, corpus, lower
+#     )
 
-    return values
+#     return values
 
 
-def qtr_baseline(core_term_1, core_term_2, corpus, verbose=True, lower=True):
+def qtr_baseline(core_term_1, core_term_2, corpus, verbose=True):
     counts1 = term_counts(core_term_1, core_term_2, 0, 0)
     counts2 = term_counts(core_term_2, core_term_1, 0, 0)
 
+    corpus = corpus.documents
+
     for doc in corpus:
-        doc = transform_doc(doc, lower)
+        doc = set(doc)
 
         found1 = False
         found2 = False
@@ -143,34 +142,32 @@ def qtr_baseline(core_term_1, core_term_2, corpus, verbose=True, lower=True):
         print(f"Term {counts1.term}: {counts1.term_count}, QTR: {qtr1}")
         print(f"Term {counts2.term}: {counts2.term_count}, QTR: {qtr2}")
         print(f"Both terms coocurring: {counts1.coocurrence_count}")
+        print()
+        print(f'Baseline term (with lower QTR): {better_term}')
 
     return lower_qtr, better_term
 
 
-def all_corpus_words(
-    corpus, lower=True
-):
-    all_words = {}
+# def all_corpus_words(
+#     corpus
+# ):
+#     all_words = {}
 
-    for doc in corpus:
-        if lower:
-            doc = [word.lower() for word in doc]
-        for word in doc:
-            all_words[word] = all_words.get(word, 0) + 1
+#     for doc in corpus:
+#         for word in doc:
+#             all_words[word] = all_words.get(word, 0) + 1
 
-    return all_words
+#     return all_words
 
 
 def all_corpus_ngrams(
-    corpus, n=2, lower=True
+    corpus, n=2
 ):
     all_words = {}
 
     for doc in corpus:
-        if lower:
-            doc = [word.lower() for word in doc]
         doclen = len(doc)
-        for i, word in enumerate(doc):
+        for i, _ in enumerate(doc):
             if i == doclen - n + 1:
                 break
             ngram = tuple(doc[i:i+n])
@@ -178,40 +175,51 @@ def all_corpus_ngrams(
     return all_words
 
 
-def get_possible_ngrams(
-    core_terms, qtr_base, corpus, lower=True,
-    min_count=3, n=2
+def get_all_ngrams(
+    core_terms,
+    qtr_base,
+    corpus,
+    min_count=3,
+    n=1
 ):
 
     relevant_docs = []
     for doc in tqdm(
         corpus, desc="Finding relevant documents with the core term"
     ):
-        doccopy = transform_doc(doc, lower)
+        doccopy = set(doc)
         if core_terms[0] in doc or core_terms[1] in doccopy:
             relevant_docs.append(doc)
 
-    all_words = all_corpus_ngrams(relevant_docs, n=n, lower=lower)
+    all_words = all_corpus_ngrams(relevant_docs, n=n)
     cleaned_all_words = []
     for word in all_words:
         if all_words[word] >= min_count:
             if not utils.begin_end_stopword(word, 'de'):
-                if core_terms[0] not in word and core_terms[1] not in word and '--' not in word and '\n\n' not in word:
+                if (
+                    core_terms[0] not in word
+                    and core_terms[1] not in word
+                    and '--' not in word
+                    and '\n\n' not in word
+                ):
                     cleaned_all_words.append(word)
 
-    print(f'Found {len(cleaned_all_words)} relevant words in the corpus')
+    print(
+        f'Found {len(cleaned_all_words)} words in the corpus'
+        f' coocurring with {core_terms[0]} and {core_terms[1]}'
+    )
 
     values = get_ngram_values(
-        cleaned_all_words, core_terms, qtr_base, corpus, lower
+        cleaned_all_words, core_terms, qtr_base, corpus
     )
 
     return values
 
 
 def get_ngram_values(
-    ngram_list, core_terms, qtr_base, corpus, lower
+    ngram_list, core_terms, qtr_base, corpus
 ):
-    print(len(ngram_list))
+
     n = len(ngram_list[0])
 
     counts = []
@@ -219,8 +227,6 @@ def get_ngram_values(
         counts.append(term_counts(term, core_terms, 0, 0))
 
     for doc in tqdm(corpus):
-        if lower:
-            doc = [word.lower() for word in doc]
         doclen = len(doc)
         doc_tuples = set()
         contains_core_term = (core_terms[0] in doc or core_terms[1] in doc)
@@ -230,7 +236,6 @@ def get_ngram_values(
                 break
             ngram = tuple(doc[i:i+n])
             doc_tuples.add(ngram)
-
 
         for term in counts:
             if term.term in doc_tuples:
