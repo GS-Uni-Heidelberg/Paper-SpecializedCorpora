@@ -1,7 +1,5 @@
-import re
 from tqdm import tqdm
 from .. import token_util as utils
-from ..corpus import Corpus
 
 
 class term_counts:
@@ -42,60 +40,6 @@ class term_counts:
             f"{self.term}: {self.term_count}, "
             f"mit <{self.base_term}>: {self.coocurrence_count}"
         )
-
-
-# def get_values(
-#     terms: list[str],
-#     core_term: str,
-#     qtr_base: float,
-#     corpus: Corpus,
-#     lower=True,
-# ):
-
-#     counts = []
-#     for term in terms:
-#         try:
-#             counts.append(term_counts(term, core_term, 0, 0))
-#         except re.error:
-#             counts.append(None)
-
-#     for doc in tqdm(corpus.lemmas):
-#         doc = set(doc)
-#         for term in counts:
-#             if term is None:
-#                 continue
-#             contains_core_term = (core_term[0] in doc or core_term[1] in doc)
-#             if term.term in doc:
-#                 term.term_count += 1
-#                 if contains_core_term:
-#                     term.coocurrence_count += 1
-
-#     return counts
-
-
-# def get_possible_values(
-#     core_terms, qtr_base, corpus, lower=True,
-#     min_count=3
-# ):
-
-#     relevant_docs = []
-#     for doc in tqdm(
-#         corpus, desc="Finding relevant documents with the core term"
-#     ):
-#         doccopy = set(doc)
-#         if core_terms[1] in doc or core_terms[2] in doccopy:
-#             relevant_docs.append(doc)
-
-#     all_words = all_corpus_words(relevant_docs)
-#     all_words = [word for word in all_words if all_words[word] >= min_count]
-
-#     print(f'Found {len(all_words)} relevant words in the corpus')
-
-#     values = get_values(
-#         all_words, core_terms, qtr_base, corpus, lower
-#     )
-
-#     return values
 
 
 def qtr_baseline(core_term_1, core_term_2, corpus, verbose=True):
@@ -148,18 +92,6 @@ def qtr_baseline(core_term_1, core_term_2, corpus, verbose=True):
     return lower_qtr, better_term
 
 
-# def all_corpus_words(
-#     corpus
-# ):
-#     all_words = {}
-
-#     for doc in corpus:
-#         for word in doc:
-#             all_words[word] = all_words.get(word, 0) + 1
-
-#     return all_words
-
-
 def all_corpus_ngrams(
     corpus, n=2
 ):
@@ -210,14 +142,14 @@ def get_all_ngrams(
     )
 
     values = get_ngram_values(
-        cleaned_all_words, core_terms, qtr_base, corpus
+        cleaned_all_words, core_terms, corpus
     )
 
     return values
 
 
 def get_ngram_values(
-    ngram_list, core_terms, qtr_base, corpus
+    ngram_list, core_terms, corpus
 ):
 
     n = len(ngram_list[0])
