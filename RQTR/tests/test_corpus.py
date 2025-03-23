@@ -1,4 +1,4 @@
-from RQTR.src.corpus import Corpus
+from ..src.corpus import Corpus
 
 
 MOCK_DOCS = [
