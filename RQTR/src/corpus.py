@@ -82,6 +82,36 @@ class Corpus:
 
 
 class FrequencyCorpus(Corpus):
+    """
+    A class to represent a corpus of lemmatized documents
+    with frequency information.
+
+    Attributes
+    ----------
+    documents : list[list[str]]
+        A list of lemmatized documents.
+    filter : None | callable
+        A function to filter out unwanted words,
+        taking a word and a language as arguments,
+        and returning True if the word is to be kept.
+        (E.g. stopwords, punctuation, etc.)
+        Default is utils.contains_alphab (A function that
+        checks if a token contains an alphabet character)
+    language : str
+        The language of the documents.
+
+    The following frequency information is stored for EVERY ngram size.
+    It is stored in dictionaries with the ngram size as the key.
+
+    size : dict
+        The total number of ngrams of that size in the corpus.
+    unique : dict
+        The number of unique ngrams of that size in the corpus.
+    ngram_counts : dict
+        A dictionary of ngrams and their counts.
+    ngram_doccounts : dict
+        A dictionary of ngrams and the number of documents they appear in.
+    """
 
     def __init__(
         self,
