@@ -1,5 +1,7 @@
 env
 myenv/
 Scrape/
+HTML-extraction/
 
 __pycache__/
+.pytest_cache/
