@@ -5,3 +5,6 @@ HTML-extraction/
 
 __pycache__/
 .pytest_cache/
+
+TODO
+playground.ipynb
