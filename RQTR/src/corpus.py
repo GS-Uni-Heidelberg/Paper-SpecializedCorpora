@@ -25,12 +25,14 @@ class Corpus:
     def __init__(
         self,
         documents: list[list[str]],
+        metadata: list[dict] = None,
         filter: None | Callable = utils.contains_alphab,
         language: str = 'de'
     ):
         self.filter = filter
         self._language = language
         self.documents = documents
+        self.metadata = metadata
 
     @property
     def filter(self):
@@ -79,6 +81,25 @@ class Corpus:
                     new_doc.append(doc[j])
                     j += 1
             self.documents[i] = new_doc
+
+    def words_as_one(self, wordlist, name=None):
+        """Function to treat a list of words as a single token
+        in the entire corpus."""
+        if name is None:
+            name = '/'.join(wordlist)
+        for doc in enumerate(self.documents):
+            for i, word in enumerate(doc):
+                if word in wordlist:
+                    doc[i] = name
+
+    def __iter__(self):
+        # Get both the document and its metadata
+        if self.metadata is not None:
+            for doc, meta in zip(self.documents, self.metadata):
+                yield doc, meta
+        else:
+            for doc in self.documents:
+                yield doc, {}
 
 
 class FrequencyCorpus(Corpus):
