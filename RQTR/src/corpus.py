@@ -30,7 +30,7 @@ class Corpus:
         language: str = 'de'
     ):
         self.filter = filter
-        self._language = language
+        self.language = language
         self.documents = documents
         self.metadata = metadata
 
@@ -58,7 +58,7 @@ class Corpus:
             clean_documents.append(
                 [
                     word for word in doc
-                    if self.filter(word, self._language)
+                    if self.filter(word, self.language)
                 ]
             )
         self._documents = clean_documents
@@ -101,6 +101,15 @@ class Corpus:
             for doc in self.documents:
                 yield doc, {}
 
+    def __getitem__(self, index):
+        if self.metadata is not None:
+            return self.documents[index], self.metadata[index]
+        else:
+            return self.documents[index], {}
+
+    def __len__(self):
+        return len(self.documents)
+
 
 class FrequencyCorpus(Corpus):
     """
@@ -138,12 +147,12 @@ class FrequencyCorpus(Corpus):
 
     def __init__(
         self,
-        docs: list[list[str]],
+        documents: list[list[str]],
         metadata: list[dict] = None,
         filter: None | Callable = utils.contains_alphab,
         language: str = 'de'
     ):
-        super().__init__(docs, metadata, filter, language)
+        super().__init__(documents, metadata, filter, language)
         self.size = dict()
         self.unique = dict()
         self.ngram_counts = dict()
@@ -178,7 +187,7 @@ class FrequencyCorpus(Corpus):
             seen_ngrams = set()
             for i in range(len(doc) - n + 1):
                 ngram = tuple(doc[i:i + n])
-                if all(filter(word, self._language) for word in ngram):
+                if all(filter(word, self.language) for word in ngram):
                     ngrams.append(ngram)
                     if ngram not in seen_ngrams:
                         ngram_doccount[ngram] = (
