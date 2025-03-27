@@ -168,7 +168,7 @@ def corpus_from_notfound(
 ):
 
     docs, metadata = zip(
-        *[source_corpus[i] for i in range(len(source_corpus)) 
+        *[source_corpus[i] for i in range(len(source_corpus))
           if i not in found_docs]
     )
 
