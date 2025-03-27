@@ -111,6 +111,8 @@ class FrequencyCorpus(Corpus):
     ----------
     documents : list[list[str]]
         A list of lemmatized documents.
+    metadata : list[dict]
+        A list of metadata dictionaries for each document.
     filter : None | callable
         A function to filter out unwanted words,
         taking a word and a language as arguments,
@@ -137,10 +139,11 @@ class FrequencyCorpus(Corpus):
     def __init__(
         self,
         docs: list[list[str]],
+        metadata: list[dict] = None,
         filter: None | Callable = utils.contains_alphab,
         language: str = 'de'
     ):
-        super().__init__(docs, filter, language)
+        super().__init__(docs, metadata, filter, language)
         self.size = dict()
         self.unique = dict()
         self.ngram_counts = dict()
