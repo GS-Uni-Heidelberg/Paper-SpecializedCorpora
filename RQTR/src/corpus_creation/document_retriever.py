@@ -1,5 +1,5 @@
 import re
-from ..corpus import Corpus
+from ..corpus import Corpus, FrequencyCorpus
 
 
 def surround_with_undsc(
@@ -64,20 +64,21 @@ def match_wordlist(
     escaped_words = [re.escape(word) for word in words]
     pattern = re.compile(f"({'|'.join(escaped_words)})")
 
-    found_docs = []
-    for doc, metadata in corpus:
+    found_docs_id = []
+    for i, entry in enumerate(corpus):
+        doc, metadata = entry
         regex_doc = surround_with_undsc('___'.join(doc))
         if unique:
             found_words = set()
             for match in pattern.finditer(regex_doc):
                 found_words.add(match.group())
             if len(found_words) >= min:
-                found_docs.append((doc, metadata))
+                found_docs_id.append(i)
         else:
             if len(pattern.findall(regex_doc)) >= min:
-                found_docs.append((doc, metadata))
+                found_docs_id.append(i)
 
-    return found_docs
+    return found_docs_id
 
 
 def match_weighted_wordlist(
@@ -94,8 +95,9 @@ def match_weighted_wordlist(
     escaped_words = [re.escape(word) for word in words]
     pattern = re.compile(f"({'|'.join(escaped_words)})")
 
-    found_docs = []
-    for doc, metadata in corpus:
+    found_docs_id = []
+    for i, entry in enumerate(corpus):
+        doc, metadata = entry
         regex_doc = surround_with_undsc('___'.join(doc))
 
         if unique:
@@ -109,7 +111,7 @@ def match_weighted_wordlist(
                     matched_weights += words[found_word]
 
             if matched_weights >= min:
-                found_docs.append((doc, metadata))
+                found_docs_id.append(i)
         else:
             # Sum the weights of all matched words
             matched_weights = 0
@@ -118,6 +120,81 @@ def match_weighted_wordlist(
                 matched_weights += words[found_word]
 
             if matched_weights >= min:
-                found_docs.append((doc, metadata))
+                found_docs_id.append(i)
 
-    return found_docs
+    return found_docs_id
+
+
+def corpus_from_found(
+    found_docs: list[int],
+    source_corpus: Corpus,
+    goal_corpus='FrequencyCorpus',
+):
+
+    docs, metadata = zip(*[source_corpus[i] for i in found_docs])
+
+    if (
+        goal_corpus == 'FrequencyCorpus'
+        or goal_corpus == FrequencyCorpus
+    ):
+        corpus = FrequencyCorpus(
+            documents=docs,
+            metadata=metadata,
+            filter=source_corpus.filter,
+            language=source_corpus.language
+        )
+
+    elif goal_corpus == 'Corpus' or goal_corpus == Corpus:
+        corpus = Corpus(
+            documents=docs,
+            metadata=metadata,
+            filter=source_corpus.filter,
+            language=source_corpus.language
+        )
+
+    else:
+        raise ValueError(
+            "Invalid goal_corpus object."
+            "Must be 'FrequencyCorpus' or 'Corpus'."
+        )
+
+    return corpus
+
+
+def corpus_from_notfound(
+    found_docs: list[int],
+    source_corpus: Corpus,
+    goal_corpus='FrequencyCorpus',
+):
+
+    docs, metadata = zip(
+        *[source_corpus[i] for i in range(len(source_corpus)) 
+          if i not in found_docs]
+    )
+
+    if (
+        goal_corpus == 'FrequencyCorpus'
+        or goal_corpus == FrequencyCorpus
+    ):
+        corpus = FrequencyCorpus(
+            documents=docs,
+            metadata=metadata,
+            filter=source_corpus.filter,
+            language=source_corpus.language
+        )
+
+    elif goal_corpus == 'Corpus' or goal_corpus == Corpus:
+        corpus = Corpus(
+            documents=docs,
+            metadata=metadata,
+            filter=source_corpus.filter,
+            language=source_corpus.language
+        )
+
+    else:
+        raise ValueError(
+            "Invalid goal_corpus object."
+            "Must be 'FrequencyCorpus' or 'Corpus'."
+        )
+
+    return corpus
