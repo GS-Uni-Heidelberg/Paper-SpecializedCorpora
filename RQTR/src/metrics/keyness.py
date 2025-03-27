@@ -24,8 +24,14 @@ def percent_difference(cont_table):
     """
     # Calculate the percent difference
 
-    normal_freq_study = cont_table[0, 0] / (cont_table[0, 0] + cont_table[1, 0])
-    normal_freq_ref = cont_table[0, 1] / (cont_table[0, 1] + cont_table[1, 1])
+    normal_freq_study = (
+        cont_table[0, 0] /
+        (cont_table[0, 0] + cont_table[1, 0])
+    )
+    normal_freq_ref = (
+        cont_table[0, 1]
+        / (cont_table[0, 1] + cont_table[1, 1])
+    )
 
     try:
         percent_difference = (
@@ -136,7 +142,13 @@ def corpus_to_contingency(
     contingency_table[0, 1] = ref_ngrams.get(ngram, 0) + smoothing
 
     # Second row: observed non-ngram frequencies
-    contingency_table[1, 0] = study_size - contingency_table[0, 0] + smoothing * study_unique
-    contingency_table[1, 1] = ref_size - contingency_table[0, 1] + smoothing * ref_unique
+    contingency_table[1, 0] = (
+        study_size - contingency_table[0, 0]
+        + smoothing * study_unique
+    )
+    contingency_table[1, 1] = (
+        ref_size - contingency_table[0, 1]
+        + smoothing * ref_unique
+    )
 
     return contingency_table
