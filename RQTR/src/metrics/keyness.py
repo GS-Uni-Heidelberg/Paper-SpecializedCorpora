@@ -2,6 +2,7 @@ import numpy as np
 import math
 from scipy import stats
 from ..corpus import FrequencyCorpus
+from ..token_util import begin_end_stopword
 from typing import Callable
 import pandas as pd
 import sys
@@ -157,16 +158,17 @@ def corpus_to_contingency(
     return contingency_table
 
 
-def keyword_list(
+def keyword_list_ngram(
     study_corpus: FrequencyCorpus,
     ref_corpus: FrequencyCorpus,
     metric: str | Callable,
     ngram_len: int = 1,
     min_docs: int = 1,
     min_freq: int = 3,
+    filter_stopwords: bool = False,
     **kwargs
 ):
-    """Calculate the keyness of all ngrams in the study corpus.
+    """Calculate the keyness of all ngrams of len n in the study corpus.
 
     Parameters:
         study_corpus (FrequencyCorpus): The study corpus.
@@ -180,7 +182,7 @@ def keyword_list(
             Default is 1.
         min_freq (int): The minimum frequency a word must have
             to be included in the results.
-            Default is 3.
+            ult is 3.
         **kwargs: Additional arguments to pass to the contigency_table
             function, e.g. smoothing.
 
@@ -200,6 +202,11 @@ def keyword_list(
             continue
         if study_corpus.ngram_counts[ngram_len][word] < min_freq:
             continue
+        if (
+            filter_stopwords
+            and begin_end_stopword(word, study_corpus.language)
+        ):
+            continue
         cont_table = corpus_to_contingency(
             word,
             study_corpus,
@@ -212,6 +219,60 @@ def keyword_list(
 
     df = pd.DataFrame(keynesses.items(), columns=['Word', 'Keyness'])
     df = df.sort_values(by='Keyness', ascending=False)
+
+    return df
+
+
+def keyword_list(
+    study_corpus: FrequencyCorpus,
+    ref_corpus: FrequencyCorpus,
+    metric: str | Callable,
+    max_ngram_len: int = 3,
+    min_docs: int = 1,
+    min_freq: int = 3,
+    filter_stopwords: bool = False,
+    **kwargs
+):
+    """Calculate the keyness of all ngrams of len up to and including n
+    in the study corpus.
+
+    Parameters:
+        study_corpus (FrequencyCorpus): The study corpus.
+        ref_corpus (FrequencyCorpus): The reference corpus.
+        metric (str or callable): The metric to use for keyness calculation.
+        max_ngram_len (int): Up to this n-gram length, the list
+            of keyness will be calculated.
+            Default is 3.
+        min_docs (int): The minimum number of documents
+            a word must appear in to be included in the results.
+            Default is 1.
+        min_freq (int): The minimum frequency a word must have
+            to be included in the results.
+            ult is 3.
+        **kwargs: Additional arguments to pass to the contigency_table
+            function, e.g. smoothing.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the keyness scores
+            and the corresponding ngrams.
+    """
+
+    df = pd.DataFrame(columns=['Word', 'Keyness'])
+    for ngram_len in range(1, max_ngram_len + 1):
+        n_df = keyword_list_ngram(
+            study_corpus,
+            ref_corpus,
+            metric,
+            ngram_len,
+            min_docs,
+            min_freq,
+            filter_stopwords,
+            **kwargs
+        )
+        df = pd.concat([df, n_df], ignore_index=True)
+
+    df = df.sort_values(by='Keyness', ascending=False)
+    df = df.reset_index(drop=True)
 
     return df
 
