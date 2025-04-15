@@ -164,7 +164,7 @@ def keyword_list_ngram(
     metric: str | Callable,
     ngram_len: int = 1,
     min_docs: int = 1,
-    min_freq: int = 3,
+    min_freq: int = 1,
     filter_stopwords: bool = False,
     **kwargs
 ):
@@ -229,7 +229,7 @@ def keyword_list(
     metric: str | Callable,
     max_ngram_len: int = 3,
     min_docs: int = 1,
-    min_freq: int = 3,
+    min_freq: int = 1,
     filter_stopwords: bool = False,
     **kwargs
 ):

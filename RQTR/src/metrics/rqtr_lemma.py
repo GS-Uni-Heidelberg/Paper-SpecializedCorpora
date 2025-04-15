@@ -108,12 +108,14 @@ def all_corpus_ngrams(
     return all_words
 
 
-def rqtr_list_ngram(
+def count_cooccurence_ngram(
     core_terms,
     corpus,
     min_count=3,
     n=1
 ):
+
+    corpus = corpus.documents
 
     relevant_docs = []
     for doc in tqdm(
@@ -148,7 +150,7 @@ def rqtr_list_ngram(
     return values
 
 
-def rqtr_list(
+def count_cooccurence(
     core_terms,
     corpus,
     min_count=3,
@@ -157,7 +159,7 @@ def rqtr_list(
     result_list = []
     for n in range(1, max_ngram_len + 1):
         result_list.extend(
-            rqtr_list_ngram(
+            count_cooccurence_ngram(
                 core_terms, corpus, min_count=min_count, n=n
             )
         )
