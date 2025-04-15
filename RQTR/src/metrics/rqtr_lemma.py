@@ -107,9 +107,8 @@ def all_corpus_ngrams(
     return all_words
 
 
-def get_all_ngrams(
+def rqtr_list_ngram(
     core_terms,
-    qtr_base,
     corpus,
     min_count=3,
     n=1
@@ -131,8 +130,8 @@ def get_all_ngrams(
                 if (
                     core_terms[0] not in word
                     and core_terms[1] not in word
-                    and '--' not in word
-                    and '\n\n' not in word
+                    and '--' not in word  # skip punctuation
+                    and '\n\n' not in word  # skip paragraph breaks
                 ):
                     cleaned_all_words.append(word)
 
@@ -146,6 +145,23 @@ def get_all_ngrams(
     )
 
     return values
+
+
+def rqtr_list(
+    core_terms,
+    corpus,
+    min_count=3,
+    max_ngram_len=3,
+):
+    result_list = []
+    for n in range(1, max_ngram_len + 1):
+        result_list.extend(
+            rqtr_list_ngram(
+                core_terms, corpus, min_count=min_count, n=n
+            )
+        )
+
+    return result_list
 
 
 def get_ngram_values(
