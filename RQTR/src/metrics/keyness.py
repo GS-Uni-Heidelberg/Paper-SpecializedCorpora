@@ -182,7 +182,7 @@ def keyword_list_ngram(
             Default is 1.
         min_freq (int): The minimum frequency a word must have
             to be included in the results.
-            ult is 3.
+            ult is 1.
         **kwargs: Additional arguments to pass to the contigency_table
             function, e.g. smoothing.
 
@@ -248,7 +248,7 @@ def keyword_list(
             Default is 1.
         min_freq (int): The minimum frequency a word must have
             to be included in the results.
-            ult is 3.
+            ult is 1.
         **kwargs: Additional arguments to pass to the contigency_table
             function, e.g. smoothing.
 
