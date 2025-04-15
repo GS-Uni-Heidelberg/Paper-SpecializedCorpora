@@ -12,16 +12,16 @@ class term_counts:
     def term(self, value):
         self._term = value
 
-    def __init__(self, term, base_term, term_count, coocurrence_count):
+    def __init__(self, term, base_term, term_count, cooccurence_count):
         self.term = term
         self.base_term = base_term
         self.term_count = term_count
-        self.coocurrence_count = coocurrence_count
+        self.cooccurence_count = cooccurence_count
 
     def qtr(self):
         if self.term_count == 0:
             raise ZeroDivisionError("term_count cannot be 0")
-        return self.coocurrence_count / self.term_count
+        return self.cooccurence_count / self.term_count
 
     def rqtr(self, qtr_base):
         qtr = self.qtr()
@@ -38,7 +38,7 @@ class term_counts:
     def __str__(self):
         return (
             f"{self.term}: {self.term_count}, "
-            f"mit <{self.base_term}>: {self.coocurrence_count}"
+            f"mit <{self.base_term}>: {self.cooccurence_count}"
         )
 
 
@@ -60,8 +60,8 @@ def qtr_baseline(core_term_1, core_term_2, corpus, verbose=True):
             counts2.term_count += 1
             found2 = True
         if found1 and found2:
-            counts1.coocurrence_count += 1
-            counts2.coocurrence_count += 1
+            counts1.cooccurence_count += 1
+            counts2.cooccurence_count += 1
 
     if counts1.term_count == 0:
         raise ValueError(f"Term '{core_term_1}' not found in corpus")
@@ -85,7 +85,7 @@ def qtr_baseline(core_term_1, core_term_2, corpus, verbose=True):
     if verbose:
         print(f"Term {counts1.term}: {counts1.term_count}, QTR: {qtr1}")
         print(f"Term {counts2.term}: {counts2.term_count}, QTR: {qtr2}")
-        print(f"Both terms coocurring: {counts1.coocurrence_count}")
+        print(f"Both terms coocurring: {counts1.cooccurence_count}")
         print()
         print(f'Baseline term (with lower QTR): {better_term}')
 
@@ -173,6 +173,6 @@ def get_ngram_values(
             if term.term in doc_tuples:
                 term.term_count += 1
                 if contains_core_term:
-                    term.coocurrence_count += 1
+                    term.cooccurence_count += 1
 
     return counts
