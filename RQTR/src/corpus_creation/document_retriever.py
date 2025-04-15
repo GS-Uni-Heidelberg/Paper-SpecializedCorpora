@@ -1,5 +1,7 @@
 import re
 from ..corpus import Corpus, FrequencyCorpus
+from sklearn.metrics import classification_report
+from pathlib import Path
 
 
 def surround_with_undsc(
@@ -52,6 +54,18 @@ def worddict_edit(
     return new_worddict
 
 
+def clean_matches(found_docs: dict):
+    """Function to clean the matches of the wordlist
+    in the corpus. Removes duplicates and empty matches."""
+    cleaned_matches = {}
+    for doc_id, matches in found_docs.items():
+        cleaned_matches[doc_id] = tuple(
+            re.sub(r'___+', ' ', match).strip()
+            for match in matches if match
+        )
+    return cleaned_matches
+
+
 def match_wordlist(
     corpus: Corpus,
     wordlist: list | set,
@@ -64,7 +78,7 @@ def match_wordlist(
     escaped_words = [re.escape(word) for word in words]
     pattern = re.compile(f"({'|'.join(escaped_words)})")
 
-    found_docs_id = []
+    found_docs_id = {}
     for i, entry in enumerate(corpus):
         doc, metadata = entry
         regex_doc = surround_with_undsc('___'.join(doc))
@@ -73,12 +87,13 @@ def match_wordlist(
             for match in pattern.finditer(regex_doc):
                 found_words.add(match.group())
             if len(found_words) >= min:
-                found_docs_id.append(i)
+                found_docs_id[i] = tuple(found_words)
         else:
+            found_words = pattern.findall(regex_doc)
             if len(pattern.findall(regex_doc)) >= min:
-                found_docs_id.append(i)
+                found_docs_id[i] = tuple(set(found_words))
 
-    return found_docs_id
+    return clean_matches(found_docs_id)
 
 
 def match_weighted_wordlist(
@@ -95,7 +110,7 @@ def match_weighted_wordlist(
     escaped_words = [re.escape(word) for word in words]
     pattern = re.compile(f"({'|'.join(escaped_words)})")
 
-    found_docs_id = []
+    found_docs_id = {}
     for i, entry in enumerate(corpus):
         doc, metadata = entry
         regex_doc = surround_with_undsc('___'.join(doc))
@@ -111,22 +126,21 @@ def match_weighted_wordlist(
                     matched_weights += words[found_word]
 
             if matched_weights >= min:
-                found_docs_id.append(i)
+                found_docs_id[i] = tuple(found_words)
         else:
             # Sum the weights of all matched words
             matched_weights = 0
-            for match in pattern.finditer(regex_doc):
-                found_word = match.group()
+            found_words = pattern.findall(regex_doc)
+            for found_word in found_words:
                 matched_weights += words[found_word]
-
             if matched_weights >= min:
-                found_docs_id.append(i)
+                found_docs_id[i] = tuple(set(found_words))
 
-    return found_docs_id
+    return clean_matches(found_docs_id)
 
 
 def corpus_from_found(
-    found_docs: list[int],
+    found_docs: list[int] | dict,
     source_corpus: Corpus,
     goal_corpus='FrequencyCorpus',
 ):
@@ -161,8 +175,29 @@ def corpus_from_found(
     return corpus
 
 
+def corpus_from_nonannotated(
+    found_docs: list[int] | dict,
+    source_corpus: Corpus,
+    annotator: str,
+    goal_corpus='FrequencyCorpus',
+):
+    found_docs_nonannotated = []
+    for i, entry in enumerate(source_corpus):
+        _, metadata = entry
+        if not metadata.get(annotator, False) and i in found_docs:
+            found_docs_nonannotated.append(i)
+
+    corpus = corpus_from_found(
+        found_docs_nonannotated,
+        source_corpus,
+        goal_corpus
+    )
+
+    return corpus
+
+
 def corpus_from_notfound(
-    found_docs: list[int],
+    found_docs: list[int] | dict,
     source_corpus: Corpus,
     goal_corpus='FrequencyCorpus',
 ):
@@ -198,3 +233,105 @@ def corpus_from_notfound(
         )
 
     return corpus
+
+
+def eval_retrieval(
+    corpus: Corpus,
+    found_docs: list[int] | dict,
+    annotator: str,
+    mode: str = 'pooling'
+):
+
+    gold_classification_main = []
+    gold_classification_side = []
+    retrieved_classification = []
+
+    # Only check Hauptthema first
+    for i, entry in enumerate(corpus):
+        _, metadata = entry
+        if mode == 'annotated':
+            if not metadata.get(annotator, False):
+                continue
+        gold_classification_main.append(
+            int(metadata.get(annotator) == '1_hauptthema')
+        )
+        gold_classification_side.append(
+            int(metadata.get(annotator) in {
+                '1_hauptthema',
+                '2_nebenthema',
+                '2_erwähnung'
+            })
+        )
+        if i in found_docs:
+            retrieved_classification.append(1)
+        else:
+            retrieved_classification.append(0)
+
+    # Print classification report
+    print('Classification report for main topic:')
+    print(
+        classification_report(
+            gold_classification_main,
+            retrieved_classification,
+            target_names=['Not Found', 'Found'],
+            digits=4
+        )
+    )
+    print()
+    print('Classification report for main and side topic:')
+    print(
+        classification_report(
+            gold_classification_side,
+            retrieved_classification,
+            target_names=['Not Found', 'Found'],
+            digits=4
+        )
+    )
+
+
+def keep_keys(
+    dict_: dict,
+    keys: list[str]
+):
+    """Function to keep only the keys in a dictionary."""
+    return {
+        key: dict_[key]
+        for key in keys
+        if key in dict_
+    }
+
+
+def prepare_annotations(
+    corpus: Corpus,
+    found_docs: dict,
+    annotator: str,
+    goalpath: str
+):
+    # Create a dictionary to store the annotations
+
+    for i, entry in enumerate(corpus):
+        _, metadata = entry
+        if metadata.get(annotator, False):
+            continue
+        if i not in found_docs:
+            continue
+
+        relevant_data = keep_keys(
+            metadata,
+            ['h1', 'url', 'text', 'og:description', 'source', 'file']
+        )
+
+        goal_text = (
+            f"URL: {relevant_data['url']}\n"
+            f"Title: {relevant_data['h1']}\n"
+            f"Description: {relevant_data['og:description']}\n"
+            f"Search terms: {', '.join(list(found_docs[i]))}\n\n"
+            f'++++++++++++++++++++++++++++++\n\n'
+            f"{relevant_data['text']}\n"
+        )
+
+        goaldir = Path(goalpath) / 'corpus_full'
+        filename = f'{Path(relevant_data['file']).stem}.txt'
+
+        with open(goaldir / filename, 'w', encoding='utf-8') as f:
+            f.write(goal_text)
