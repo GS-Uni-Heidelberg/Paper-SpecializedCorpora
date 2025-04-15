@@ -1,5 +1,6 @@
 from tqdm import tqdm
 from .. import token_util as utils
+import pandas as pd
 
 
 class term_counts:
@@ -192,3 +193,43 @@ def get_ngram_values(
                     term.cooccurence_count += 1
 
     return counts
+
+
+def cooccurence_to_metric(
+    cooccurence_values,
+    baseline,
+    metric='rqtrn',
+):
+
+    match metric.lower():
+        case 'qtr':
+            df = pd.DataFrame(
+                [(term.term, term.qtr()) for term in cooccurence_values],
+                columns=['Term', 'QTR']
+            )
+        case 'rqtr':
+            df = pd.DataFrame(
+                [
+                    (term.term, term.rqtr(baseline))
+                    for term in cooccurence_values
+                ],
+                columns=['Term', 'RQTR']
+            )
+        case 'rqtrn':
+            df = pd.DataFrame(
+                [
+                    (term.term, term.rqtrn(baseline))
+                    for term in cooccurence_values
+                ],
+                columns=['Term', 'RQTRN']
+            )
+        case _:
+            raise ValueError(
+                f"Unknown metric: {metric}. "
+                f"Please use 'qtr', 'rqtr', or 'rqtrn'."
+            )
+
+    df = df.sort_values(by=metric.upper(), ascending=False)
+    df = df.reset_index(drop=True)
+
+    return df
