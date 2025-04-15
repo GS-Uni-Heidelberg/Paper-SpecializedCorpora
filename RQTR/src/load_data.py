@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import random
 
 
 def remove_keys(dict_, keys):
@@ -42,3 +43,15 @@ def load_files(
             metadata.append(metadata_dict)
 
     return docs, metadata
+
+
+def load_reference_sample(
+    filepath, samplesize=10000
+):
+    with open(filepath, 'r') as f:
+        reference_corpus = json.load(f)
+
+    if samplesize > 0:
+        reference_corpus = random.sample(reference_corpus, samplesize)
+
+    return reference_corpus
