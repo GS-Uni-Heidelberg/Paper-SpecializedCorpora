@@ -96,6 +96,40 @@ def match_wordlist(
     return clean_matches(found_docs_id)
 
 
+def match_regex(
+    corpus: Corpus,
+    regex: str | re.Pattern,
+    text_key: str = 'text_deduped',
+    min: int = 1,
+    unique: bool = False,
+):
+
+    found_docs_id = {}
+    for i, entry in enumerate(corpus):
+
+        _, metadata = entry
+
+        try:
+            text = metadata.get(text_key, '')
+        except KeyError:
+            raise KeyError(
+                f"Key '{text_key}' not found in metadata."
+            )
+
+        if not isinstance(text, str):
+            raise ValueError(
+                f"Text must be a string, but got {type(text)}."
+            )
+
+        hits = re.findall(regex, text)
+        if unique:
+            hits = set(hits)
+        if len(hits) >= min:
+            found_docs_id[i] = tuple(hits)
+
+    return clean_matches(found_docs_id)
+
+
 def match_weighted_wordlist(
     corpus: Corpus,
     wordlist: dict,
