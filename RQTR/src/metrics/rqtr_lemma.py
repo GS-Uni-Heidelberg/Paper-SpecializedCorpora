@@ -2,7 +2,7 @@ from tqdm import tqdm
 from .. import token_util as utils
 import pandas as pd
 from ..corpus import Corpus
-from typing import Iterable
+from typing import Iterable, Callable
 from collections import defaultdict
 
 
@@ -67,7 +67,12 @@ class TermCounts:
         )
 
     def __repr__(self):
-        return self.term
+        return (
+            f"TermCounts(term={self.term}, "
+            f"base_terms={self.base_term}, "
+            f"term_count={self.term_count}, "
+            f"cooccurence_count={self.cooccurence_count})"
+        )
 
 
 class SearchTerms:
@@ -83,7 +88,10 @@ class SearchTerms:
         if not all(isinstance(term, (str, tuple)) for term in value):
             raise TypeError("Terms must be str or tuple[str]")
 
-        self._terms = value
+        self._terms = {
+            term if isinstance(term, tuple) else (term,)
+            for term in value
+        }
 
         # Update term lens - more efficient approach
         self._term_lens = defaultdict(set)
@@ -98,8 +106,8 @@ class SearchTerms:
 
     def in_doc(
         self,
-        doc: Iterable[str],
-    ):
+        doc: list[str],
+    ) -> set[str | tuple[str]]:
         # For each term len, create a set out of the doc
         # and check if any of the terms are in the doc
 
@@ -108,15 +116,19 @@ class SearchTerms:
         for term_len in self._term_lens:
             if term_len == 1:
                 # Check for single terms
-                doc = set(doc)
+                docset = set(doc)
+                docset = {
+                    (term,) if isinstance(term, str) else term
+                    for term in docset
+                }
                 for term in self._term_lens[term_len]:
-                    if term in doc:
+                    if term in docset:
                         terms_in_doc.add(term)
             else:
                 # Check for n-grams
                 doc_tuples = set()
                 doclen = len(doc)
-                for i, word in enumerate(doc):
+                for i, _ in enumerate(doc):
                     if i == doclen - term_len + 1:
                         break
                     ngram = tuple(doc[i:i+term_len])
@@ -203,66 +215,81 @@ def qtr_baseline(
 
 
 def all_corpus_ngrams(
-    corpus, n=2
+    docs, n=2
 ):
-    all_words = {}
+    all_words = set()
 
-    for doc in corpus:
+    for doc in docs:
+
         doclen = len(doc)
         for i, _ in enumerate(doc):
             if i == doclen - n + 1:
                 break
             ngram = tuple(doc[i:i+n])
-            all_words[ngram] = all_words.get(ngram, 0) + 1
+            all_words.add(ngram)
     return all_words
 
 
 def count_cooccurence_ngram(
-    core_terms,
-    corpus,
-    min_count=3,
-    n=1
+    core_terms: list[str | tuple],
+    corpus: Corpus,
+    n: int = 1,
+    filter_func: Callable = utils.begin_end_stopword
 ):
 
-    corpus = corpus.documents
+    core_terms = set(core_terms)
+    core_search_terms = SearchTerms(core_terms)
 
     relevant_docs = []
-    for doc in tqdm(
+    for doc, _ in tqdm(
         corpus, desc="Finding relevant documents with the core term"
     ):
-        doccopy = set(doc)
-        if core_terms[0] in doc or core_terms[1] in doccopy:
+        if len(core_search_terms.in_doc(doc)) > 0:
             relevant_docs.append(doc)
 
     all_words = all_corpus_ngrams(relevant_docs, n=n)
-    cleaned_all_words = []
+    all_words_cleaned = {}
     for word in all_words:
-        if all_words[word] >= min_count:
-            if not utils.begin_end_stopword(word, 'de'):
-                if (
-                    core_terms[0] not in word
-                    and core_terms[1] not in word
-                    and '--' not in word  # skip punctuation
-                    and '\n\n' not in word  # skip paragraph breaks
-                ):
-                    cleaned_all_words.append(word)
+        if word in core_terms:
+            continue
+        if word == '\n\n':
+            continue
+        if word == '--':
+            continue
+        if filter_func(word):
+            continue
+        all_words_cleaned[word] = TermCounts(
+            word,
+            core_terms,
+            0,
+            0
+        )
+
+    full_search = set(all_words_cleaned.keys()) | core_terms
+    search_terms = SearchTerms(full_search)
 
     print(
-        f'Found {len(cleaned_all_words)} words in the corpus'
-        f' coocurring with {core_terms[0]} and {core_terms[1]}'
+        f'Found {len(all_words_cleaned)} words in the corpus'
+        f' coocurring with {core_terms}'
     )
 
-    values = get_ngram_values(
-        cleaned_all_words, core_terms, corpus
-    )
+    for doc, _ in corpus:
+        search_result = search_terms.in_doc(doc)
+        intersect_core = core_terms.intersection(search_result)
+        intersect_canditates = search_result - core_terms
 
-    return values
+        for term in intersect_canditates:
+            all_words_cleaned[term].term_count += 1
+            if len(intersect_core) > 0:
+                all_words_cleaned[term].cooccurence_count += 1
+
+    return list(all_words_cleaned.values())
 
 
 def count_cooccurence(
     core_terms,
     corpus,
-    min_count=3,
+    min_count=1,
     max_ngram_len=3,
 ):
     result_list = []
@@ -274,36 +301,6 @@ def count_cooccurence(
         )
 
     return result_list
-
-
-def get_ngram_values(
-    ngram_list, core_terms, corpus
-):
-
-    n = len(ngram_list[0])
-
-    counts = []
-    for term in ngram_list:
-        counts.append(TermCounts(term, core_terms, 0, 0))
-
-    for doc in tqdm(corpus):
-        doclen = len(doc)
-        doc_tuples = set()
-        contains_core_term = (core_terms[0] in doc or core_terms[1] in doc)
-
-        for i, word in enumerate(doc):
-            if i == doclen - n + 1:
-                break
-            ngram = tuple(doc[i:i+n])
-            doc_tuples.add(ngram)
-
-        for term in counts:
-            if term.term in doc_tuples:
-                term.term_count += 1
-                if contains_core_term:
-                    term.cooccurence_count += 1
-
-    return counts
 
 
 def cooccurence_to_metric(
