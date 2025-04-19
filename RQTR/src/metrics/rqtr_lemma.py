@@ -1,36 +1,60 @@
 from tqdm import tqdm
 from .. import token_util as utils
 import pandas as pd
+from ..corpus import Corpus
+from typing import Iterable
+from collections import defaultdict
 
 
-class term_counts:
+class TermCounts:
+    """Class to represent term frequencies and term co-occurrences
+    in documents.
+    Includes methods to calculate QTR, RQTR, and RQTRN metrics.
+
+    Attributes:
+        term (str or tuple[str]): The term or n-gram being counted.
+        base_terms (Iterable[str]): The base terms for co-occurrence
+            counting.
+        term_count (int): The number of documents containing the term.
+        cooccurence_count (int): The number of documents containing both
+            the term and the base terms.
+    """
+
     @property
     def term(self):
         return self._term
 
-    # term.setter
     @term.setter
     def term(self, value):
         self._term = value
 
-    def __init__(self, term, base_term, term_count, cooccurence_count):
+    def __init__(
+        self,
+        term: str | tuple[str],
+        base_term: Iterable[str],
+        term_count: int,
+        cooccurence_count: int
+    ):
         self.term = term
         self.base_term = base_term
         self.term_count = term_count
         self.cooccurence_count = cooccurence_count
 
     def qtr(self):
+        """Calculate QTR (Query Term Relevance)"""
         if self.term_count == 0:
             raise ZeroDivisionError("term_count cannot be 0")
         return self.cooccurence_count / self.term_count
 
-    def rqtr(self, qtr_base):
+    def rqtr(self, qtr_base: float):
+        """Calculate RQTR (Relative Query Term Relevance)"""
         qtr = self.qtr()
         if qtr_base == 0:
             raise ZeroDivisionError("qtr_base cannot be 0")
         return 100 * (qtr - qtr_base) / qtr_base
 
-    def rqtrn(self, qtr_base):
+    def rqtrn(self, qtr_base: float):
+        """Calculate RQTRN (Normalized Relative Query Term Relevance)"""
         if qtr_base == 1:
             raise ZeroDivisionError("qtr_base cannot be 1")
         qtr = self.qtr()
@@ -42,53 +66,138 @@ class term_counts:
             f"mit <{self.base_term}>: {self.cooccurence_count}"
         )
 
+    def __repr__(self):
+        return self.term
 
-def qtr_baseline(core_term_1, core_term_2, corpus, verbose=True):
-    counts1 = term_counts(core_term_1, core_term_2, 0, 0)
-    counts2 = term_counts(core_term_2, core_term_1, 0, 0)
 
-    corpus = corpus.documents
+class SearchTerms:
+    @property
+    def terms(self):
+        return self._terms
 
-    for doc in corpus:
-        doc = set(doc)
+    @terms.setter
+    def terms(self, value):
+        # Validate terms
+        if len(value) != len(set(value)):
+            raise ValueError("Duplicate terms found")
+        if not all(isinstance(term, (str, tuple)) for term in value):
+            raise TypeError("Terms must be str or tuple[str]")
 
-        found1 = False
-        found2 = False
-        if core_term_1 in doc:
-            counts1.term_count += 1
-            found1 = True
-        if core_term_2 in doc:
-            counts2.term_count += 1
-            found2 = True
-        if found1 and found2:
-            counts1.cooccurence_count += 1
-            counts2.cooccurence_count += 1
+        self._terms = value
 
-    if counts1.term_count == 0:
-        raise ValueError(f"Term '{core_term_1}' not found in corpus")
-    if counts2.term_count == 0:
-        raise ValueError(f"Term '{core_term_2}' not found in corpus")
+        # Update term lens - more efficient approach
+        self._term_lens = defaultdict(set)
+        for term in value:
+            term_len = len(term) if isinstance(term, tuple) else 1
+            self._term_lens[term_len].add(term)
+        self._term_lens = dict(self._term_lens)
 
-    qtr1 = counts1.qtr()
-    qtr2 = counts2.qtr()
+    def __init__(self, terms: Iterable[str | tuple[str]]):
+        self._term_lens = {}
+        self.terms = terms
 
-    if qtr1 == qtr2:
-        print("Both terms are equally good, returning the first term")
-        lower_qtr = qtr1
-        better_term = core_term_1
-    elif qtr1 > qtr2:
-        lower_qtr = qtr2
-        better_term = core_term_2
-    else:
-        lower_qtr = qtr1
-        better_term = core_term_1
+    def in_doc(
+        self,
+        doc: Iterable[str],
+    ):
+        # For each term len, create a set out of the doc
+        # and check if any of the terms are in the doc
+
+        terms_in_doc = set()
+
+        for term_len in self._term_lens:
+            if term_len == 1:
+                # Check for single terms
+                doc = set(doc)
+                for term in self._term_lens[term_len]:
+                    if term in doc:
+                        terms_in_doc.add(term)
+            else:
+                # Check for n-grams
+                doc_tuples = set()
+                doclen = len(doc)
+                for i, word in enumerate(doc):
+                    if i == doclen - term_len + 1:
+                        break
+                    ngram = tuple(doc[i:i+term_len])
+                    doc_tuples.add(ngram)
+                for term in self._term_lens[term_len]:
+                    if term in doc_tuples:
+                        terms_in_doc.add(term)
+
+        return terms_in_doc
+
+
+def qtr_baseline(
+    core_terms: list[str | tuple],
+    corpus: Corpus,
+    verbose=True
+):
+
+    if len(core_terms) < 2:
+        raise ValueError("At least 2 core terms are required")
+
+    # Initialize counts for each term
+    all_counts = {}
+    for term in core_terms:
+        all_counts[term] = TermCounts(
+            term,
+            core_terms,
+            0,
+            0
+        )
+
+    search_terms = SearchTerms(core_terms)
+
+    # Count occurrences and co-occurrences
+    for doc, _ in corpus:
+
+        # Track which terms are found in this document
+        found_terms = search_terms.in_doc(doc)
+
+        # Update co-occurrence counts
+        seen_cooccurrences = set()
+        for term1 in found_terms:
+            all_counts[term1].term_count += 1
+            for term2 in found_terms:
+                if term1 == term2:
+                    continue
+                if term1 in seen_cooccurrences:
+                    continue
+                all_counts[term1].cooccurence_count += 1
+                seen_cooccurrences.add(term1)
+                break
+
+    # Check if any terms are missing from corpus
+    for term, counts in all_counts.items():
+        if counts.term_count == 0:
+            raise ValueError(f"Term '{term}' not found in corpus")
+
+    # Calculate QTR for each term
+    qtr_values = {term: counts.qtr() for term, counts in all_counts.items()}
+
+    # Find term with lowest QTR
+    better_term = min(qtr_values.items(), key=lambda x: x[1])
+    lower_qtr = better_term[1]
+    better_term = better_term[0]
 
     if verbose:
-        print(f"Term {counts1.term}: {counts1.term_count}, QTR: {qtr1}")
-        print(f"Term {counts2.term}: {counts2.term_count}, QTR: {qtr2}")
-        print(f"Both terms coocurring: {counts1.cooccurence_count}")
-        print()
-        print(f'Baseline term (with lower QTR): {better_term}')
+        for term, counts in all_counts.items():
+            print(f"Term {term}: {counts.term_count}, QTR: {qtr_values[term]}")
+
+        print("\nCo-occurrence counts:")
+        for term1 in core_terms:
+            for term2 in core_terms:
+                if term1 != term2:
+                    print(
+                        f"Co-occurrence ({term1}, {term2}): "
+                        f"{all_counts[term1].cooccurence_count}"
+                    )
+        print("\nQTR values:")
+        for term, qtr in qtr_values.items():
+            print(f"QTR({term}): {qtr}")
+
+        print(f"\nBaseline term (with lowest QTR): {better_term}")
 
     return lower_qtr, better_term
 
@@ -175,7 +284,7 @@ def get_ngram_values(
 
     counts = []
     for term in ngram_list:
-        counts.append(term_counts(term, core_terms, 0, 0))
+        counts.append(TermCounts(term, core_terms, 0, 0))
 
     for doc in tqdm(corpus):
         doclen = len(doc)

@@ -339,9 +339,29 @@ def prepare_annotations(
     corpus: Corpus,
     found_docs: dict,
     annotator: str,
-    goalpath: str
+    goalpath: str,
+    confimation: bool = True
 ):
     # Create a dictionary to store the annotations
+
+    if confimation:
+        new_files_count = 0
+        for i, entry in enumerate(corpus):
+            _, metadata = entry
+            if metadata.get(annotator, False):
+                continue
+            if i not in found_docs:
+                continue
+            new_files_count += 1
+        print(
+            f'This process will create {new_files_count} new files '
+            f'in {goalpath}.\n'
+        )
+        if input(
+            'Do you want to continue? (y/n): '
+        ).lower() != 'y':
+            print('Process cancelled.')
+            return
 
     for i, entry in enumerate(corpus):
         _, metadata = entry
