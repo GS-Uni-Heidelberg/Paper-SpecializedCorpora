@@ -95,8 +95,8 @@ class SearchTerms:
 
         # Update term lens - more efficient approach
         self._term_lens = defaultdict(set)
-        for term in value:
-            term_len = len(term) if isinstance(term, tuple) else 1
+        for term in self._terms:
+            term_len = len(term)
             self._term_lens[term_len].add(term)
         self._term_lens = dict(self._term_lens)
 
@@ -145,6 +145,11 @@ def qtr_baseline(
     corpus: Corpus,
     verbose=True
 ):
+
+    core_terms = [
+        term if isinstance(term, tuple) else (term,)
+        for term in core_terms
+    ]
 
     if len(core_terms) < 2:
         raise ValueError("At least 2 core terms are required")
