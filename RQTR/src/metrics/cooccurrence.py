@@ -1,9 +1,7 @@
 from ..corpus import Corpus
-import pandas as pd
 from tqdm import tqdm
 import math
 from collections import defaultdict
-from dataclasses import dataclass
 
 
 class Cooccurrences():
@@ -30,7 +28,6 @@ class Cooccurrences():
             smoothing (float): The smoothing parameter to use when calculating
                 the cooccurrence table. Defaults to 0.0.
         """
-
         self.window_size = window_size
         self.unit_separator = unit_separator
         self.smoothing = smoothing
@@ -39,119 +36,139 @@ class Cooccurrences():
         self.vocab = set()
 
     def count_cooccurrences(self, corpus: Corpus):
-        """Count the cooccurrences of words in the corpus.
-        """
+        """Count the cooccurrences of words in the corpus."""
+        self.cooccurrence_table = defaultdict(lambda: defaultdict(int))
 
-        cooccurrence_table = defaultdict(lambda: defaultdict(0))
         for document in tqdm(corpus.documents):
-            if self.unit_separator:
-                units = [
-                    unit.split()
-                    for unit in document.split(self.unit_separator)
-                ]
-            else:
-                units = [document]
+            units = self._split_document_into_units(document)
+            self._process_units(units)
 
-            for unit in units:
-                for i, word in enumerate(unit):
-                    seen_words = set()
-                    if word not in cooccurrence_table:
-                        cooccurrence_table[word] = {}
-
-                    if self.window_size:
-                        for j in range(
-                            i - self.window_size, i + self.window_size + 1
-                        ):
-                            if j < 0 or j >= len(unit) or j == i:
-                                continue
-                            if unit[j] in seen_words:  # Skip duplicate words
-                                continue
-                            seen_words.add(unit[j])
-
-                            cooccurrence_table[word][unit[j]] = cooccurrence_table[
-                                word
-                            ].get(unit[j], 0) + 1
-                    else:
-                        for other_word in unit:
-                            if other_word in seen_words:
-                                continue
-                            seen_words.add(other_word)
-                            cooccurrence_table[word][other_word] = cooccurrence_table[
-                                word
-                            ].get(other_word, 0) + 1
-
-        self.cooccurrence_table = cooccurrence_table
-        self.vocab = set(cooccurrence_table.keys())
+        self.vocab = set(self.cooccurrence_table.keys())
         self.apply_smoothing()
-        self.__margin_sums()
+        self._calculate_margin_sums()
         self.calc_total_collocations()
 
-    def __margin_sums(self):
-        """Calculate the row and column sums of the cooccurrence table and
-        add it under the '__total__' key.
-        """
+    def _split_document_into_units(self, document):
+        """Split a document into units based on the unit_separator."""
+        if not self.unit_separator:
+            return [document]
+        return [unit.split() for unit in document.split(self.unit_separator)]
 
+    def _process_units(self, units):
+        """Process all units to count cooccurrences."""
+        for unit in units:
+            for i, word in enumerate(unit):
+                self._process_word_cooccurrences(word, unit, i)
+
+    def _process_word_cooccurrences(self, word, unit, word_index):
+        """Process a single word's cooccurrences within a unit."""
+        seen_words = set()
+
+        if self.window_size:
+            self._count_windowed_cooccurrences(
+                word, unit, word_index, seen_words
+            )
+        else:
+            self._count_unit_wide_cooccurrences(
+                word, unit, seen_words
+            )
+
+    def _count_windowed_cooccurrences(
+        self,
+        word: str,
+        unit: list[str],
+        word_index: int,
+        seen_words: set[str]
+    ):
+        """Count cooccurrences within a window around the word."""
+        start_idx = max(0, word_index - self.window_size)
+        end_idx = min(len(unit), word_index + self.window_size + 1)
+
+        for j in range(start_idx, end_idx):
+            if j == word_index or unit[j] in seen_words:
+                continue
+
+            seen_words.add(unit[j])
+            self._add_cooccurrence(word, unit[j])
+
+    def _count_unit_wide_cooccurrences(
+        self,
+        word: str,
+        unit: list[str],
+        seen_words: set[str]
+    ):
+        """Count cooccurrences across the entire unit."""
+        for other_word in unit:
+            if other_word == word or other_word in seen_words:
+                continue
+
+            seen_words.add(other_word)
+            self._add_cooccurrence(word, other_word)
+
+    def _add_cooccurrence(self, word, other_word):
+        """Increment the cooccurrence count for a word pair."""
+        self.cooccurrence_table[word][other_word] = (
+            self.cooccurrence_table[word].get(other_word, 0)
+            + 1
+        )
+
+    def _calculate_margin_sums(self):
+        """Calculate the row and column sums of the cooccurrence table."""
         for cooccurrences in self.cooccurrence_table.values():
             cooccurrences['__total__'] = sum(cooccurrences.values())
 
     def apply_smoothing(self):
-        """Apply the smoothing parameter to the cooccurrence table.
-        """
+        """Apply the smoothing parameter to the cooccurrence table."""
         if not self.smoothing:
             return
 
         for cooccurrences in self.cooccurrence_table.values():
             for word in self.vocab:
                 cooccurrences[word] = (
-                    cooccurrences.get(word, 0) + self.smoothing
+                    cooccurrences.get(word, 0)
+                    + self.smoothing
                 )
 
-        return
-
     def undo_smoothing(self):
-        """Undo the smoothing parameter from the cooccurrence table.
-        """
-
+        """Undo the smoothing parameter from the cooccurrence table."""
         if not self.smoothing:
             return
 
         for cooccurrences in self.cooccurrence_table.values():
             for word in self.vocab:
                 cooccurrences[word] = (
-                    cooccurrences.get(word, 0) - self.smoothing
+                    cooccurrences.get(word, 0)
+                    - self.smoothing
                 )
 
     def pop_stop(self, stop_words: list[str]):
-        """Remove stop words from the cooccurrence table.
-        """
-
+        """Remove stop words from the cooccurrence table."""
         stop_words = set(stop_words)
 
         for stop_word in stop_words:
             if stop_word in self.cooccurrence_table:
                 self.cooccurrence_table.pop(stop_word)
+
         for cooccurrences in self.cooccurrence_table.values():
             for stop_word in stop_words:
                 if stop_word in cooccurrences:
                     cooccurrences.pop(stop_word)
+
         self.calc_total_collocations()
-        self.vocab = set(self.cooccurrence_table.columns)
+        self.vocab = set(self.cooccurrence_table.keys())
 
     @property
     def total_collocations(self):
-        """Return the total number of collocations in the table.
-        """
+        """Return the total number of collocations in the table."""
         if not self._total_collocations:
             self.calc_total_collocations()
         return self._total_collocations
 
     def calc_total_collocations(self):
-        """Calculate the total number of collocations in the table.
-        """
+        """Calculate the total number of collocations in the table."""
         total = 0
         for cooccurrences in self.cooccurrence_table.values():
             total += cooccurrences['__total__']
-
         self._total_collocations = total
 
 
@@ -159,7 +176,8 @@ def calculate_pmi(
     word1: str,
     word2: str,
     collocations: Cooccurrences,
-    smoothing: float = 0.0
+    smoothing: float = 0.0,
+    exp: float = 1
 ) -> float:
     """
     Calculate the pointwise mutual information (PMI) score for a pair of words
@@ -168,11 +186,19 @@ def calculate_pmi(
     Args:
         word1: First word.
         word2: Second word.
-        collocations: CooccurrenceTable object containing the cooccurrence matrix.
+        collocations: CooccurrenceTable object
+            containing the cooccurrence matrix.
+        smoothing: Smoothing parameter to avoid zero counts, log(0)
+            and generally bias towards smaller values.
+        exp: Exponent to raise the PMI score to.
+            Default is 1 (no exponentiation, classic PMI).
+            Increasing the exponent will result in more general
+            collocations achieving higher scores.
 
     Returns:
         float: Pointwise Mutual Information (PMI) score.
     """
+
     # Access the cooccurrence table (Pandas DataFrame)
     cooccurrence_table = collocations.cooccurrence_table
 
@@ -181,23 +207,39 @@ def calculate_pmi(
         return float('-inf')  # Return -inf if either word is not in the table
 
     # ||w1, R, w2|| - frequency of the specific collocation
-    f_w1_r_w2 = cooccurrence_table[word1].get(word2, 0) + smoothing
+    f_w1_r_w2 = (
+        cooccurrence_table[word1].get(word2, 0)
+        + smoothing
+    )
 
     # ||w1, R, *|| - frequency of first word with any relation (row sum)
-    f_w1_r = cooccurrence_table[word1]['__total__'] + smoothing * len(collocations.vocab)
+    f_w1_r = (
+        cooccurrence_table[word1]['__total__']
+        + smoothing * len(collocations.vocab)
+    )
 
     # ||*, R, w2|| - frequency of second word with any relation (column sum)
-    f_r_w2 = cooccurrence_table[word2]['__total__'] + smoothing * len(collocations.vocab)
+    f_r_w2 = (
+        cooccurrence_table[word2]['__total__']
+        + smoothing * len(collocations.vocab)
+    )
 
     # ||*, *, *|| - total frequency of all collocations
-    f_total = collocations.total_collocations + smoothing * len(collocations.vocab) ** 2
+    f_total = (
+        collocations.total_collocations
+        + smoothing * len(collocations.vocab) ** 2
+    )
 
     # Avoid division by zero / log(0)
     if f_w1_r == 0 or f_r_w2 == 0 or f_w1_r_w2 == 0 or f_total == 0:
         return float('-inf')
 
     # Calculate PMI score
-    pmi_score = math.log2((f_w1_r_w2 * f_total) / (f_w1_r * f_r_w2))
+    pmi_score = math.log2(
+        ((f_w1_r_w2 * f_total)**exp)
+        /
+        (f_w1_r * f_r_w2)
+    )
 
     return pmi_score
 
@@ -209,12 +251,13 @@ def calculate_logdice(
     smoothing: float = 0.0
 ) -> float:
     """
-    Calculate the logDice score for a pair of words using the CooccurrenceTable.
+    Calculate the logDice score for a pair of words using CooccurrenceTable.
 
     Args:
         word1: First word
         word2: Second word
-        collocations: CooccurrenceTable object containing the cooccurrence matrix
+        collocations: CooccurrenceTable object
+            containing the cooccurrence matrix
 
     Returns:
         float: logDice score
@@ -227,13 +270,22 @@ def calculate_logdice(
         return float('-inf')  # Return -inf if either word is not in the table
 
     # ||w1, R, w2|| - frequency of the specific collocation
-    f_w1_r_w2 = cooccurrence_table[word1].get(word2, 0) + smoothing
+    f_w1_r_w2 = (
+        cooccurrence_table[word1].get(word2, 0)
+        + smoothing
+    )
 
     # ||w1, R, *|| - frequency of first word with any relation (row sum)
-    f_w1_r = cooccurrence_table[word1]['__total__'] + smoothing * len(collocations.vocab)
+    f_w1_r = (
+        cooccurrence_table[word1]['__total__']
+        + smoothing * len(collocations.vocab)
+    )
 
     # ||*, R, w2|| - frequency of second word with any relation (column sum)
-    f_r_w2 = cooccurrence_table[word2]['__total__'] + smoothing * len(collocations.vocab)
+    f_r_w2 = (
+        cooccurrence_table[word2]['__total__']
+        + smoothing * len(collocations.vocab)
+    )
 
     # Avoid division by zero
     if f_w1_r == 0 or f_r_w2 == 0 or f_w1_r_w2 == 0:
