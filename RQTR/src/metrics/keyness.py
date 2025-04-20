@@ -217,7 +217,7 @@ def keyword_list_ngram(
         keyness_score = metric_function(cont_table)
         keynesses[word] = keyness_score
 
-    df = pd.DataFrame(keynesses.items(), columns=['Word', 'Keyness'])
+    df = pd.DataFrame(keynesses.items(), columns=['Term', 'Keyness'])
     df = df.sort_values(by='Keyness', ascending=False)
 
     return df
@@ -257,7 +257,7 @@ def keyword_list(
             and the corresponding ngrams.
     """
 
-    df = pd.DataFrame(columns=['Word', 'Keyness'])
+    df = pd.DataFrame(columns=['Term', 'Keyness'])
     for ngram_len in range(1, max_ngram_len + 1):
         n_df = keyword_list_ngram(
             study_corpus,

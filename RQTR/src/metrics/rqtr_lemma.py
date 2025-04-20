@@ -311,12 +311,17 @@ def cooccurence_to_metric(
     cooccurence_values,
     baseline,
     metric='rqtrn',
+    min_docs=1,
 ):
 
     match metric.lower():
         case 'qtr':
             df = pd.DataFrame(
-                [(term.term, term.qtr()) for term in cooccurence_values],
+                [
+                    (term.term, term.qtr())
+                    for term in cooccurence_values
+                    if term.term_count >= min_docs
+                ],
                 columns=['Term', 'QTR']
             )
         case 'rqtr':
@@ -324,6 +329,7 @@ def cooccurence_to_metric(
                 [
                     (term.term, term.rqtr(baseline))
                     for term in cooccurence_values
+                    if term.term_count >= min_docs
                 ],
                 columns=['Term', 'RQTR']
             )
@@ -332,6 +338,7 @@ def cooccurence_to_metric(
                 [
                     (term.term, term.rqtrn(baseline))
                     for term in cooccurence_values
+                    if term.term_count >= min_docs
                 ],
                 columns=['Term', 'RQTRN']
             )
