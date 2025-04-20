@@ -78,29 +78,29 @@ class Cooccurrences():
 
     # Update the count_cooccurrences method
     def count_cooccurrences(self, corpus, max_workers=None):
-            """Count the cooccurrences of words in the corpus using parallel processing."""
-            process_doc = partial(
-                self.process_document,
-                window_size=self.window_size,
-                unit_separator=self.unit_separator
-            )
+        """Count the cooccurrences of words in the corpus using parallel processing."""
+        process_doc = partial(
+            self.process_document,
+            window_size=self.window_size,
+            unit_separator=self.unit_separator
+        )
 
-            # Use ProcessPoolExecutor for parallel processing
-            with ProcessPoolExecutor(max_workers=max_workers) as executor:
-                # Using tqdm to show progress
-                results = list(tqdm(
-                    executor.map(process_doc, corpus.documents),
-                    total=len(corpus.documents),
-                    desc="Processing documents"
-                ))
+        # Use ProcessPoolExecutor for parallel processing
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            # Using tqdm to show progress
+            results = list(tqdm(
+                executor.map(process_doc, corpus.documents),
+                total=len(corpus.documents),
+                desc="Processing documents"
+            ))
 
-            # Merge results from all processes
-            self.cooccurrence_table = self.merge_cooccurrences(results)
+        # Merge results from all processes
+        self.cooccurrence_table = self.merge_cooccurrences(results)
 
-            self.vocab = set(self.cooccurrence_table.keys())
-            self.apply_smoothing()
-            self._calculate_margin_sums()
-            self.calc_total_collocations()
+        self.vocab = set(self.cooccurrence_table.keys())
+        self.apply_smoothing()
+        self._calculate_margin_sums()
+        self.calc_total_collocations()
 
     def _split_document_into_units(self, document):
         """Split a document into units based on the unit_separator."""
