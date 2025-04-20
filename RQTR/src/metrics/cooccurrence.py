@@ -1,7 +1,9 @@
 from ..corpus import Corpus
 from tqdm import tqdm
 import math
-from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from collections import defaultdict, Counter
+from functools import partial
 
 
 class Cooccurrences():
@@ -35,18 +37,70 @@ class Cooccurrences():
         self.cooccurrence_table = None
         self.vocab = set()
 
-    def count_cooccurrences(self, corpus: Corpus):
-        """Count the cooccurrences of words in the corpus."""
-        self.cooccurrence_table = defaultdict(lambda: defaultdict(int))
+    def process_document(self, document, window_size, unit_separator):
+        """Process a single document in parallel"""
+        units = self._split_document_into_units(document)
 
-        for document in tqdm(corpus.documents):
-            units = self._split_document_into_units(document)
-            self._process_units(units)
+        local_cooccurrences = defaultdict(Counter)
 
-        self.vocab = set(self.cooccurrence_table.keys())
-        self.apply_smoothing()
-        self._calculate_margin_sums()
-        self.calc_total_collocations()
+        for unit in units:
+            for i, word in enumerate(unit):
+                seen_words = set()
+
+                if window_size:
+                    # Windowed cooccurrences
+                    start_idx = max(0, i - window_size)
+                    end_idx = min(len(unit), i + window_size + 1)
+
+                    for j in range(start_idx, end_idx):
+                        if j == i or unit[j] in seen_words:
+                            continue
+                        seen_words.add(unit[j])
+                        local_cooccurrences[word][unit[j]] += 1
+                else:
+                    # Unit-wide cooccurrences
+                    for other_word in unit:
+                        if other_word == word or other_word in seen_words:
+                            continue
+                        seen_words.add(other_word)
+                        local_cooccurrences[word][other_word] += 1
+
+        return local_cooccurrences
+
+    def merge_cooccurrences(self, results):
+        """Merge cooccurrence results from parallel processing"""
+        merged = defaultdict(lambda: defaultdict(int))
+        for local_cooccurrences in results:
+            for word, counter in local_cooccurrences.items():
+                for other_word, count in counter.items():
+                    merged[word][other_word] += count
+        return merged
+
+    # Update the count_cooccurrences method
+    def count_cooccurrences(self, corpus, max_workers=None):
+            """Count the cooccurrences of words in the corpus using parallel processing."""
+            process_doc = partial(
+                self.process_document,
+                window_size=self.window_size,
+                unit_separator=self.unit_separator
+            )
+
+            # Use ProcessPoolExecutor for parallel processing
+            with ProcessPoolExecutor(max_workers=max_workers) as executor:
+                # Using tqdm to show progress
+                results = list(tqdm(
+                    executor.map(process_doc, corpus.documents),
+                    total=len(corpus.documents),
+                    desc="Processing documents"
+                ))
+
+            # Merge results from all processes
+            self.cooccurrence_table = self.merge_cooccurrences(results)
+
+            self.vocab = set(self.cooccurrence_table.keys())
+            self.apply_smoothing()
+            self._calculate_margin_sums()
+            self.calc_total_collocations()
 
     def _split_document_into_units(self, document):
         """Split a document into units based on the unit_separator."""
