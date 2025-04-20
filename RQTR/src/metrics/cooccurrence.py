@@ -296,3 +296,55 @@ def calculate_logdice(
     logdice_score = 14 + math.log2(dice_score)
 
     return logdice_score
+
+
+def calculate_minsens(
+    word1: str,
+    word2: str,
+    collocations: Cooccurrences,
+    smoothing: float = 0.0
+) -> float:
+    """
+    Calculate the minimum sensitivity score for a pair of words using
+    CooccurrenceTable.
+
+    Args:
+        word1: First word
+        word2: Second word
+        collocations: CooccurrenceTable object
+            containing the cooccurrence matrix
+
+    Returns:
+        float: Minimum sensitivity score
+    """
+
+    # Access the cooccurrence table (Pandas DataFrame)
+    cooccurrence_table = collocations.cooccurrence_table
+
+    def calculate_sensitivity(focus_word, other_word):
+        """Calculate the sensitivity of a word pair."""
+
+        # Avoid division by zero
+        if (
+            cooccurrence_table[focus_word]['__total__'] == 0
+            or cooccurrence_table[focus_word].get(other_word, 0) == 0
+        ):
+            return float('-inf')
+
+        return (
+            (
+                cooccurrence_table[focus_word].get(other_word, 0)
+                + smoothing
+            )
+            /
+            (
+                cooccurrence_table[focus_word]['__total__']
+                + smoothing * len(collocations.vocab)
+            )
+        )
+
+    sensitivity1 = calculate_sensitivity(word1, word2)
+    sensitivity2 = calculate_sensitivity(word2, word1)
+    min_sensitivity = min(sensitivity1, sensitivity2)
+
+    return min_sensitivity
