@@ -342,27 +342,8 @@ def prepare_annotations(
     goalpath: str,
     confimation: bool = True
 ):
-    # Create a dictionary to store the annotations
 
-    if confimation:
-        new_files_count = 0
-        for i, entry in enumerate(corpus):
-            _, metadata = entry
-            if metadata.get(annotator, False):
-                continue
-            if i not in found_docs:
-                continue
-            new_files_count += 1
-        print(
-            f'This process will create {new_files_count} new files '
-            f'in {goalpath}.\n'
-        )
-        if input(
-            'Do you want to continue? (y/n): '
-        ).lower() != 'y':
-            print('Process cancelled.')
-            return
-
+    files_to_write = {}
     for i, entry in enumerate(corpus):
         _, metadata = entry
         if metadata.get(annotator, False):
@@ -388,6 +369,21 @@ def prepare_annotations(
         if not goaldir.exists():
             goaldir = Path(goalpath)
         filename = f'{Path(relevant_data['file']).stem}.txt'
+        filepath = Path(goaldir) / filename
+        if filepath.exists():
+            continue
 
-        with open(goaldir / filename, 'w', encoding='utf-8') as f:
+        files_to_write[filepath] = goal_text
+
+    if confimation:
+        if input(
+            f'This process will create {len(files_to_write)} files '
+            f'in {goaldir}.\n'
+            'Do you want to continue? (y/n): '
+        ).lower() != 'y':
+            print('Process cancelled.')
+            return
+
+    for filename, goal_text in files_to_write.items():
+        with open(filename, 'w', encoding='utf-8') as f:
             f.write(goal_text)
