@@ -294,14 +294,13 @@ def count_cooccurence_ngram(
 def count_cooccurence(
     core_terms,
     corpus,
-    min_count=1,
     max_ngram_len=3,
 ):
     result_list = []
     for n in range(1, max_ngram_len + 1):
         result_list.extend(
             count_cooccurence_ngram(
-                core_terms, corpus, min_count=min_count, n=n
+                core_terms, corpus, n=n
             )
         )
 
