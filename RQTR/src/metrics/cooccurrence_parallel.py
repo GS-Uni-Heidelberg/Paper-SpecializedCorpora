@@ -9,7 +9,10 @@ from functools import partial
 # +++ FUNCTIONS FOR PARALLEL PROCESSING +++ #
 # Outside the class to avoid pickling issues etc.
 
-def _split_document_into_units(document, unit_separator=None):
+def _split_document_into_units(
+    document: list[str],
+    unit_separator: str | None = None
+):
     """Split a document into units based on the unit_separator."""
     if not unit_separator:
         return [document]
@@ -27,7 +30,11 @@ def _split_document_into_units(document, unit_separator=None):
     return split_doc
 
 
-def _process_document(document, window_size, unit_separator):
+def _process_document(
+    document: list[str],
+    window_size: int | None,
+    unit_separator: str | None
+):
     """Process a single document in parallel"""
     units = _split_document_into_units(document, unit_separator)
 
@@ -104,7 +111,11 @@ class Cooccurrences():
         self.cooccurrence_table = None
         self.vocab = set()
 
-    def count_cooccurrences(self, corpus, max_workers=None):
+    def count_cooccurrences(
+        self,
+        corpus: Corpus,
+        max_workers=None
+    ):
         """Count the cooccurrences of words in the corpus
         using parallel processing."""
         process_doc = partial(
@@ -130,7 +141,10 @@ class Cooccurrences():
         self._calculate_margin_sums()
         self.calc_total_collocations()
 
-    def _process_units(self, units):
+    def _process_units(
+        self,
+        units: list[str]
+    ):
         """Process all units to count cooccurrences."""
         for unit in units:
             for i, word in enumerate(unit):
@@ -181,7 +195,11 @@ class Cooccurrences():
             seen_words.add(other_word)
             self._add_cooccurrence(word, other_word)
 
-    def _add_cooccurrence(self, word, other_word):
+    def _add_cooccurrence(
+        self,
+        word: str,
+        other_word: str
+    ):
         """Increment the cooccurrence count for a word pair."""
         self.cooccurrence_table[word][other_word] = (
             self.cooccurrence_table[word].get(other_word, 0)
