@@ -2,30 +2,37 @@ import re
 from ..corpus import Corpus, FrequencyCorpus
 from sklearn.metrics import classification_report
 from pathlib import Path
+from typing import Iterable
 
 
-def surround_with_undsc(
+# def _surround_with_undscs(
+#     text: str,
+# ) -> str:
+#     return f"____{text}____"
+
+
+def _surround_with_undsc(
     text: str,
 ) -> str:
-    return f"___{text}___"
+    return f"__{text}__"
 
 
-def wordlist_edit(
-    wordlist
+def _wordlist_edit(
+    wordlist: Iterable[str | tuple]
 ):
     new_wordlist = []
     for ngram in wordlist:
         if isinstance(ngram, str):
             new_wordlist.append(
-                surround_with_undsc(ngram)
+                _surround_with_undsc(ngram)
             )
         elif isinstance(ngram, tuple) and len(ngram) == 1:
             new_wordlist.append(
-                surround_with_undsc(ngram[0])
+                _surround_with_undsc(ngram[0])
             )
         elif isinstance(ngram, tuple) and len(ngram) > 1:
             new_wordlist.append(
-                surround_with_undsc('___'.join(ngram))
+                _surround_with_undsc('____'.join(ngram))
             )
         else:
             raise ValueError(
@@ -35,17 +42,17 @@ def wordlist_edit(
     return new_wordlist
 
 
-def worddict_edit(
-    worddict
+def _worddict_edit(
+    worddict: dict
 ):
     new_worddict = {}
     for ngram, weight in worddict.items():
         if isinstance(ngram, str):
-            new_worddict[surround_with_undsc(ngram)] = weight
+            new_worddict[_surround_with_undsc(ngram)] = weight
         elif isinstance(ngram, tuple) and len(ngram) == 1:
-            new_worddict[surround_with_undsc(ngram[0])] = weight
+            new_worddict[_surround_with_undsc(ngram[0])] = weight
         elif isinstance(ngram, tuple) and len(ngram) > 1:
-            new_worddict[surround_with_undsc('___'.join(ngram))] = weight
+            new_worddict[_surround_with_undsc('____'.join(ngram))] = weight
         else:
             raise ValueError(
                 "Invalid wordlist format."
@@ -54,13 +61,13 @@ def worddict_edit(
     return new_worddict
 
 
-def clean_matches(found_docs: dict):
+def _clean_matches(found_docs: dict):
     """Function to clean the matches of the wordlist
     in the corpus. Removes duplicates and empty matches."""
     cleaned_matches = {}
     for doc_id, matches in found_docs.items():
         cleaned_matches[doc_id] = tuple(
-            re.sub(r'___+', ' ', match).strip()
+            re.sub(r'__+', ' ', match).strip()
             for match in matches if match
         )
     return cleaned_matches
@@ -68,20 +75,20 @@ def clean_matches(found_docs: dict):
 
 def match_wordlist(
     corpus: Corpus,
-    wordlist: list | set,
+    wordlist: list | set | dict,
     min: int = 1,
     unique: bool = False,
 ):
     """Function to treat a list of words as a single token
     in the entire corpus."""
-    words = wordlist_edit(wordlist)
+    words = _wordlist_edit(wordlist)
     escaped_words = [re.escape(word) for word in words]
     pattern = re.compile(f"({'|'.join(escaped_words)})")
 
     found_docs_id = {}
     for i, entry in enumerate(corpus):
-        doc, metadata = entry
-        regex_doc = surround_with_undsc('___'.join(doc))
+        doc, _ = entry
+        regex_doc = _surround_with_undsc('____'.join(doc))
         if unique:
             found_words = set()
             for match in pattern.finditer(regex_doc):
@@ -93,7 +100,33 @@ def match_wordlist(
             if len(pattern.findall(regex_doc)) >= min:
                 found_docs_id[i] = tuple(set(found_words))
 
-    return clean_matches(found_docs_id)
+    return _clean_matches(found_docs_id)
+
+
+def match_wordlist_pmw(
+    corpus: Corpus,
+    wordlist: dict,
+    min_pmw: int
+):
+    wordlist = _wordlist_edit(wordlist)
+    escaped_words = [re.escape(word) for word in wordlist]
+    pattern = re.compile(f"({'|'.join(escaped_words)})")
+
+    found_docs_id = {}
+    for i, entry in enumerate(corpus):
+        doc, _ = entry
+        regex_doc = _surround_with_undsc('____'.join(doc))
+        found_words = pattern.findall(regex_doc)
+
+        pmw_score = (
+            len(found_words) * 1000000
+            /
+            len(doc)
+        )
+        if pmw_score > min_pmw:
+            found_docs_id[i] = tuple(set(found_words))
+
+    return _clean_matches(found_docs_id)
 
 
 def match_regex(
@@ -127,7 +160,7 @@ def match_regex(
         if len(hits) >= min:
             found_docs_id[i] = tuple(hits)
 
-    return clean_matches(found_docs_id)
+    return _clean_matches(found_docs_id)
 
 
 def match_weighted_wordlist(
@@ -140,14 +173,14 @@ def match_weighted_wordlist(
     in the entire corpus. Returns documents where the sum of weights
     of matched words is at least equal to min."""
 
-    words = worddict_edit(wordlist)
+    words = _worddict_edit(wordlist)
     escaped_words = [re.escape(word) for word in words]
     pattern = re.compile(f"({'|'.join(escaped_words)})")
 
     found_docs_id = {}
     for i, entry in enumerate(corpus):
         doc, metadata = entry
-        regex_doc = surround_with_undsc('___'.join(doc))
+        regex_doc = _surround_with_undsc('____'.join(doc))
 
         if unique:
             # Sum the weights of unique matched words
@@ -170,7 +203,7 @@ def match_weighted_wordlist(
             if matched_weights >= min:
                 found_docs_id[i] = tuple(set(found_words))
 
-    return clean_matches(found_docs_id)
+    return _clean_matches(found_docs_id)
 
 
 def corpus_from_found(
