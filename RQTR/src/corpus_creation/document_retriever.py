@@ -401,7 +401,7 @@ def prepare_annotations(
         goaldir = Path(goalpath) / 'corpus_full'
         if not goaldir.exists():
             goaldir = Path(goalpath)
-        filename = f'{Path(relevant_data['file']).stem}.txt'
+        filename = f"{Path(relevant_data['file']).stem}.txt"
         filepath = Path(goaldir) / filename
         if filepath.exists():
             continue
