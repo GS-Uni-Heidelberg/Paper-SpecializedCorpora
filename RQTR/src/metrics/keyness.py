@@ -68,6 +68,16 @@ def log_likelihood_scipy(contingency_table):
         contingency_table, lambda_="log-likelihood"
     )[0]
 
+    # Calculate corpus sizes
+    study_corpus_size = contingency_table[:, 0].sum()
+    ref_corpus_size = contingency_table[:, 1].sum()
+
+    # Change to negative log likelihood if more frequent (relatively) in ref corpus
+    if (contingency_table[0, 0] / study_corpus_size) < (
+        contingency_table[0, 1] / ref_corpus_size
+    ):
+        log_likelihood = -log_likelihood
+
     return log_likelihood
 
 
@@ -85,6 +95,10 @@ def log_likelihood_rayson(contingency_table):
         contingency_table[0, 0] * math.log(contingency_table[0, 0] / e1)
         + contingency_table[0, 1] * math.log(contingency_table[0, 1] / e2)
     )
+
+# Change to negative log likelihood if more frequent (relatively) in ref corpus
+    if (contingency_table[0, 0] / study_corpus_size) < (contingency_table[0, 1] / ref_corpus_size):
+        log_likelihood = -log_likelihood
 
     return log_likelihood
 
