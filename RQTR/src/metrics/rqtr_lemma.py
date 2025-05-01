@@ -242,6 +242,10 @@ def count_cooccurence_ngram(
     filter_func: Callable = utils.begin_end_stopword
 ):
 
+    core_terms = [
+        term if isinstance(term, tuple) else (term,)
+        for term in core_terms
+    ]
     core_terms = set(core_terms)
     core_search_terms = SearchTerms(core_terms)
 
