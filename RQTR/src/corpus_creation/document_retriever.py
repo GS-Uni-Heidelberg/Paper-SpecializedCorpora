@@ -110,25 +110,38 @@ def match_wordlist(
 
 def match_wordlist_pmw(
     corpus: Corpus,
-    wordlist: dict,
-    min_pmw: int
+    wordlist: list | set | dict,
+    min_pmw: int = 1000,
+    unique: bool = False,
+    escape: bool = True,
+    flags=0
 ):
-    wordlist = _wordlist_edit(wordlist)
-    escaped_words = [re.escape(word) for word in wordlist]
-    pattern = re.compile(f"({'|'.join(escaped_words)})")
+    """Function to find documents in a corpus where the frequency of words
+    from a wordlist exceeds a minimum parts per million threshold."""
+    words = _wordlist_edit(wordlist)
+    if escape:
+        escaped_words = [re.escape(word) for word in words]
+    else:
+        escaped_words = words
+    pattern = re.compile(f"({'|'.join(escaped_words)})", flags=flags)
 
     found_docs_id = {}
     for i, entry in enumerate(corpus):
         doc, _ = entry
         regex_doc = _surround_with_undsc('____'.join(doc))
-        found_words = pattern.findall(regex_doc)
 
-        pmw_score = (
-            len(found_words) * 1000000
-            /
-            len(doc)
-        )
-        if pmw_score > min_pmw:
+        if unique:
+            found_words = set()
+            for match in pattern.finditer(regex_doc):
+                found_words.add(match.group())
+            word_count = len(found_words)
+        else:
+            found_words = pattern.findall(regex_doc)
+            word_count = len(found_words)
+
+        pmw_score = (word_count * 1000000) / len(doc)
+
+        if pmw_score >= min_pmw:
             found_docs_id[i] = tuple(set(found_words))
 
     return _clean_matches(found_docs_id)
