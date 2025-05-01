@@ -78,12 +78,17 @@ def match_wordlist(
     wordlist: list | set | dict,
     min: int = 1,
     unique: bool = False,
+    escape=True,
+    flags=0
 ):
     """Function to treat a list of words as a single token
     in the entire corpus."""
     words = _wordlist_edit(wordlist)
-    escaped_words = [re.escape(word) for word in words]
-    pattern = re.compile(f"({'|'.join(escaped_words)})")
+    if escape:
+        escaped_words = [re.escape(word) for word in words]
+    else:
+        escaped_words = words
+    pattern = re.compile(f"({'|'.join(escaped_words)})", flags=flags)
 
     found_docs_id = {}
     for i, entry in enumerate(corpus):
@@ -97,7 +102,7 @@ def match_wordlist(
                 found_docs_id[i] = tuple(found_words)
         else:
             found_words = pattern.findall(regex_doc)
-            if len(pattern.findall(regex_doc)) >= min:
+            if len(found_words) >= min:
                 found_docs_id[i] = tuple(set(found_words))
 
     return _clean_matches(found_docs_id)
