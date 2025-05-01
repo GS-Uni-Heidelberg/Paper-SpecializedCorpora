@@ -307,6 +307,51 @@ def corpus_from_notfound(
     return corpus
 
 
+def corpus_from_keys(
+    keys: Iterable,
+    source_corpus: Corpus,
+    key_name: str | int = 'file',
+    goal_corpus='FrequencyCorpus',
+):
+    data = list(source_corpus)
+
+    found_docs = []
+    keys = set(keys)
+    for i, entry in enumerate(data):
+        _, metadata = entry
+        if metadata.get(key_name, False) in keys:
+            found_docs.append(i)
+
+    docs, metadata = zip(*[source_corpus[i] for i in found_docs])
+
+    if (
+        goal_corpus == 'FrequencyCorpus'
+        or goal_corpus == FrequencyCorpus
+    ):
+        corpus = FrequencyCorpus(
+            documents=docs,
+            metadata=metadata,
+            filter=source_corpus.filter,
+            language=source_corpus.language
+        )
+
+    elif goal_corpus == 'Corpus' or goal_corpus == Corpus:
+        corpus = Corpus(
+            documents=docs,
+            metadata=metadata,
+            filter=source_corpus.filter,
+            language=source_corpus.language
+        )
+
+    else:
+        raise ValueError(
+            "Invalid goal_corpus object."
+            "Must be 'FrequencyCorpus' or 'Corpus'."
+        )
+
+    return corpus
+
+
 def eval_retrieval(
     corpus: Corpus,
     found_docs: list[int] | dict,
