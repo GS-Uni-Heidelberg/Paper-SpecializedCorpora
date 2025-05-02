@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def remove_redundant(df: pd.DataFrame, check_col='Word') -> pd.DataFrame:
+def remove_redundant(df: pd.DataFrame, check_col='Term') -> pd.DataFrame:
     """
     Remove redundant columns from a DataFrame.
 
