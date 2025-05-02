@@ -418,6 +418,23 @@ def eval_retrieval(
         )
     )
 
+    return (
+        classification_report(
+            gold_classification_main,
+            retrieved_classification,
+            target_names=['Not Found', 'Found'],
+            digits=4,
+            output_dict=True
+        ),
+        classification_report(
+            gold_classification_side,
+            retrieved_classification,
+            target_names=['Not Found', 'Found'],
+            digits=4,
+            output_dict=True
+        )
+    )
+
 
 def keep_keys(
     dict_: dict,
