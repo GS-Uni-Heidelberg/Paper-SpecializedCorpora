@@ -1,9 +1,22 @@
 from ..corpus import Corpus
 from tqdm import tqdm
-import math
 from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict, Counter
 from functools import partial
+from _cooccurrence_shared import (
+    calculate_logdice,
+    calculate_minsens,
+    calculate_pmi,
+    all_collocations
+)
+
+__all__ = [
+    'Cooccurrences',
+    'calculate_logdice',
+    'calculate_minsens',
+    'calculate_pmi',
+    'all_collocations'
+]
 
 
 # +++ FUNCTIONS FOR PARALLEL PROCESSING +++ #
@@ -264,181 +277,3 @@ class Cooccurrences():
         for cooccurrences in self.cooccurrence_table.values():
             total += cooccurrences['__total__']
         self._total_collocations = total
-
-
-def calculate_pmi(
-    word1: str,
-    word2: str,
-    collocations: Cooccurrences,
-    smoothing: float = 0.0,
-    exp: float = 1
-) -> float:
-    """
-    Calculate the pointwise mutual information (PMI) score for a pair of words
-    using the CooccurrenceTable.
-
-    Args:
-        word1: First word.
-        word2: Second word.
-        collocations: CooccurrenceTable object
-            containing the cooccurrence matrix.
-        smoothing: Smoothing parameter to avoid zero counts, log(0)
-            and generally bias towards smaller values.
-        exp: Exponent to raise the PMI score to.
-            Default is 1 (no exponentiation, classic PMI).
-            Increasing the exponent will result in more general
-            collocations achieving higher scores.
-
-    Returns:
-        float: Pointwise Mutual Information (PMI) score.
-    """
-
-    # Access the cooccurrence table (Pandas DataFrame)
-    cooccurrence_table = collocations.cooccurrence_table
-
-    # Check if both words are in the vocabulary
-    if word1 not in collocations.vocab or word2 not in collocations.vocab:
-        return float('-inf')  # Return -inf if either word is not in the table
-
-    # ||w1, R, w2|| - frequency of the specific collocation
-    f_w1_r_w2 = (
-        cooccurrence_table[word1].get(word2, 0)
-        + smoothing
-    )
-
-    # ||w1, R, *|| - frequency of first word with any relation (row sum)
-    f_w1_r = (
-        cooccurrence_table[word1]['__total__']
-        + smoothing * len(collocations.vocab)
-    )
-
-    # ||*, R, w2|| - frequency of second word with any relation (column sum)
-    f_r_w2 = (
-        cooccurrence_table[word2]['__total__']
-        + smoothing * len(collocations.vocab)
-    )
-
-    # ||*, *, *|| - total frequency of all collocations
-    f_total = (
-        collocations.total_collocations
-        + smoothing * len(collocations.vocab) ** 2
-    )
-
-    # Avoid division by zero / log(0)
-    if f_w1_r == 0 or f_r_w2 == 0 or f_w1_r_w2 == 0 or f_total == 0:
-        return float('-inf')
-
-    # Calculate PMI score
-    pmi_score = math.log2(
-        ((f_w1_r_w2 * f_total)**exp)
-        /
-        (f_w1_r * f_r_w2)
-    )
-
-    return pmi_score
-
-
-def calculate_logdice(
-    word1: str,
-    word2: str,
-    collocations: Cooccurrences,
-    smoothing: float = 0.0
-) -> float:
-    """
-    Calculate the logDice score for a pair of words using CooccurrenceTable.
-
-    Args:
-        word1: First word
-        word2: Second word
-        collocations: CooccurrenceTable object
-            containing the cooccurrence matrix
-
-    Returns:
-        float: logDice score
-    """
-    # Access the cooccurrence table (Pandas DataFrame)
-    cooccurrence_table = collocations.cooccurrence_table
-
-    # Check if both words are in the vocabulary
-    if word1 not in collocations.vocab or word2 not in collocations.vocab:
-        return float('-inf')  # Return -inf if either word is not in the table
-
-    # ||w1, R, w2|| - frequency of the specific collocation
-    f_w1_r_w2 = (
-        cooccurrence_table[word1].get(word2, 0)
-        + smoothing
-    )
-
-    # ||w1, R, *|| - frequency of first word with any relation (row sum)
-    f_w1_r = (
-        cooccurrence_table[word1]['__total__']
-        + smoothing * len(collocations.vocab)
-    )
-
-    # ||*, R, w2|| - frequency of second word with any relation (column sum)
-    f_r_w2 = (
-        cooccurrence_table[word2]['__total__']
-        + smoothing * len(collocations.vocab)
-    )
-
-    # Avoid division by zero
-    if f_w1_r == 0 or f_r_w2 == 0 or f_w1_r_w2 == 0:
-        return float('-inf')
-
-    # Calculate logDice score
-    dice_score = (2 * f_w1_r_w2) / (f_w1_r + f_r_w2)
-    logdice_score = 14 + math.log2(dice_score)
-
-    return logdice_score
-
-
-def calculate_minsens(
-    word1: str,
-    word2: str,
-    collocations: Cooccurrences,
-    smoothing: float = 0.0
-) -> float:
-    """
-    Calculate the minimum sensitivity score for a pair of words using
-    CooccurrenceTable.
-
-    Args:
-        word1: First word
-        word2: Second word
-        collocations: CooccurrenceTable object
-            containing the cooccurrence matrix
-
-    Returns:
-        float: Minimum sensitivity score
-    """
-
-    # Access the cooccurrence table (Pandas DataFrame)
-    cooccurrence_table = collocations.cooccurrence_table
-
-    def calculate_sensitivity(focus_word, other_word):
-        """Calculate the sensitivity of a word pair."""
-
-        # Avoid division by zero
-        if (
-            cooccurrence_table[focus_word]['__total__'] == 0
-            or cooccurrence_table[focus_word].get(other_word, 0) == 0
-        ):
-            return float('-inf')
-
-        return (
-            (
-                cooccurrence_table[focus_word].get(other_word, 0)
-                + smoothing
-            )
-            /
-            (
-                cooccurrence_table[focus_word]['__total__']
-                + smoothing * len(collocations.vocab)
-            )
-        )
-
-    sensitivity1 = calculate_sensitivity(word1, word2)
-    sensitivity2 = calculate_sensitivity(word2, word1)
-    min_sensitivity = min(sensitivity1, sensitivity2)
-
-    return min_sensitivity
