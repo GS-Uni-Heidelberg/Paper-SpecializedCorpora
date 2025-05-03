@@ -41,3 +41,28 @@ def remove_redundant(df: pd.DataFrame, check_col='Term') -> pd.DataFrame:
     df_copy.reset_index(drop=True, inplace=True)
 
     return df_copy
+
+
+def top_x(n, col, df):
+    """
+    Return top n rows sorted by col, including all tied values at the cutoff.
+
+    Parameters:
+    - n: int, number of top rows to return
+    - col: str, column name to sort by
+    - df: pandas DataFrame
+
+    Returns:
+    - DataFrame with top n rows plus any tied values at the cutoff
+    """
+    # Sort the dataframe by the specified column
+    sorted_df = df.sort_values(by=col, ascending=False).reset_index(drop=True)
+
+    if len(sorted_df) <= n:
+        return sorted_df
+
+    # Get the value at the nth position
+    cutoff_value = sorted_df.iloc[n-1][col]
+
+    # Return all rows with values >= cutoff_value
+    return sorted_df[sorted_df[col] >= cutoff_value]
