@@ -41,15 +41,15 @@ def calculate_pmi(
     # Get counts with smoothing
     f_w1_r_w2 = cooccurrence_table[word1].get(word2, 0) + smoothing
     f_w1_r = (
-        cooccurrence_table[word1]['__total__'] 
+        cooccurrence_table[word1]['__total__']
         + smoothing * len(collocations.vocab)
     )
     f_r_w2 = (
-        cooccurrence_table[word2]['__total__'] 
+        cooccurrence_table[word2]['__total__']
         + smoothing * len(collocations.vocab)
     )
     f_total = (
-        collocations.total_collocations 
+        collocations.total_collocations
         + smoothing * len(collocations.vocab) ** 2
     )
 
