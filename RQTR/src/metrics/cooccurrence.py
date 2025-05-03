@@ -90,7 +90,7 @@ class Cooccurrences():
 
     # Update the count_cooccurrences method
     def count_cooccurrences(self, corpus, max_workers=None):
-        """Count the cooccurrences of words in the corpus 
+        """Count the cooccurrences of words in the corpus
         using parallel processing."""
         process_doc = partial(
             self.process_document,
