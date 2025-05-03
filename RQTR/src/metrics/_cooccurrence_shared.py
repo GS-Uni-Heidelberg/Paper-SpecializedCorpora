@@ -1,6 +1,7 @@
 import math
 from cooccurrence import Cooccurrences
 import pandas as pd
+from typing import Callable
 
 
 def calculate_pmi(
@@ -39,9 +40,18 @@ def calculate_pmi(
 
     # Get counts with smoothing
     f_w1_r_w2 = cooccurrence_table[word1].get(word2, 0) + smoothing
-    f_w1_r = cooccurrence_table[word1]['__total__'] + smoothing * len(collocations.vocab)
-    f_r_w2 = cooccurrence_table[word2]['__total__'] + smoothing * len(collocations.vocab)
-    f_total = collocations.total_collocations + smoothing * len(collocations.vocab) ** 2
+    f_w1_r = (
+        cooccurrence_table[word1]['__total__'] 
+        + smoothing * len(collocations.vocab)
+    )
+    f_r_w2 = (
+        cooccurrence_table[word2]['__total__'] 
+        + smoothing * len(collocations.vocab)
+    )
+    f_total = (
+        collocations.total_collocations 
+        + smoothing * len(collocations.vocab) ** 2
+    )
 
     # Avoid division by zero / log(0)
     if f_w1_r == 0 or f_r_w2 == 0 or f_w1_r_w2 == 0 or f_total == 0:
@@ -195,7 +205,9 @@ def all_collocations(
     all_results = [
         (other_term, method(word, other_term, cooccurrences, **kwargs))
         for other_term in cooccurrences.vocab
-        if cooccurrences.cooccurrence_table[word].get(other_term, 0) >= min_count
+        if cooccurrences.cooccurrence_table[word].get(
+            other_term, 0
+        ) >= min_count
     ]
 
     df = pd.DataFrame(all_results, columns=['Term', 'Stat'])
