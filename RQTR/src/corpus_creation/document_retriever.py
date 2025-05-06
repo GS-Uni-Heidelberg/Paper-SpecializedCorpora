@@ -403,7 +403,7 @@ def eval_retrieval(
         classification_report(
             gold_classification_main,
             retrieved_classification,
-            target_names=['Not Found', 'Found'],
+            target_names=['Not Relevant', 'Relevant'],
             digits=4
         )
     )
@@ -413,7 +413,7 @@ def eval_retrieval(
         classification_report(
             gold_classification_side,
             retrieved_classification,
-            target_names=['Not Found', 'Found'],
+            target_names=['Not Relevant', 'Relevant'],
             digits=4
         )
     )
@@ -422,14 +422,14 @@ def eval_retrieval(
         classification_report(
             gold_classification_main,
             retrieved_classification,
-            target_names=['Not Found', 'Found'],
+            target_names=['Not Relevant', 'Relevant'],
             digits=4,
             output_dict=True
         ),
         classification_report(
             gold_classification_side,
             retrieved_classification,
-            target_names=['Not Found', 'Found'],
+            target_names=['Not Relevant', 'Relevant'],
             digits=4,
             output_dict=True
         )
