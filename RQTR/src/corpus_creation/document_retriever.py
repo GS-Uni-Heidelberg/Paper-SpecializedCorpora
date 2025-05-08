@@ -436,6 +436,55 @@ def eval_retrieval(
     )
 
 
+def eval_min(
+    corpus: Corpus,
+    found_docs: list[int] | dict,
+    annotator: str = 'gold_label',
+    min_min: int = 1,
+    max_min: int = 10,
+    mode: str = 'pooling',
+    topic: str = ['1_hauptthema']
+):
+
+    results = {}
+    for i in range(min_min, max_min + 1):
+        found_docs_min = {
+            k: v for k, v in found_docs.items()
+            if len(v) >= i
+        }
+
+        gold_classification = []
+        retrieved_classification = []
+        for j, entry in enumerate(corpus):
+            _, metadata = entry
+            if mode == 'annotated':
+                if not metadata.get(annotator, False):
+                    continue
+            gold_classification.append(
+                int(metadata.get(annotator) in topic)
+            )
+            if j in found_docs_min:
+                retrieved_classification.append(1)
+            else:
+                retrieved_classification.append(0)
+
+        classification_report_ = classification_report(
+            gold_classification,
+            retrieved_classification,
+            target_names=['Not Relevant', 'Relevant'],
+            digits=4,
+            output_dict=True
+        )
+
+        results[i] = {
+            'precision': classification_report_['Relevant']['precision'],
+            'recall': classification_report_['Relevant']['recall'],
+            'f1-score': classification_report_['Relevant']['f1-score'],
+        }
+
+    return results
+
+
 def _keep_keys(
     dict_: dict,
     keys: list[str]
