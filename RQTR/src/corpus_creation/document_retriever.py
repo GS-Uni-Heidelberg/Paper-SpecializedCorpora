@@ -436,7 +436,7 @@ def eval_retrieval(
     )
 
 
-def keep_keys(
+def _keep_keys(
     dict_: dict,
     keys: list[str]
 ):
@@ -464,7 +464,7 @@ def prepare_annotations(
         if i not in found_docs:
             continue
 
-        relevant_data = keep_keys(
+        relevant_data = _keep_keys(
             metadata,
             ['h1', 'url', 'text', 'og:description', 'source', 'file']
         )
