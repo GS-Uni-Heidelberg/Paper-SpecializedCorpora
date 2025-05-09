@@ -1,13 +1,46 @@
 import math
-from cooccurrence import Cooccurrences
 import pandas as pd
 from typing import Callable
+
+
+class BaseCooccurrences():
+    """Class to count cooccurrences of words in a corpus."""
+
+    def __init__(
+        self,
+        window_size: int | None = 5,
+        unit_separator: str | None = None,
+        smoothing: float | None = None,
+    ):
+        """Initialize the cooccurrence table with the params
+        used to count the cooccurrences.
+
+        If smoothing is provided, the cooccurrence table is smoothed
+        by adding the smoothing parameter to each cell.
+
+        Parameters:
+            window_size (int | None): The size of the window to use to count
+                cooccurrences. If None, the whole document or unit is used.
+                Defaults to 5.
+            unit_separator (str | None): If a unit_separator is provided, the
+                document is split into units using the separator. Can be used
+                e.g. to calculate cooccurrences paragraph-wide.
+                Defaults to None.
+            smoothing (float): The smoothing parameter to use when calculating
+                the cooccurrence table. Defaults to 0.0.
+        """
+        self.window_size = window_size
+        self.unit_separator = unit_separator
+        self.smoothing = smoothing
+        self._total_collocations = None
+        self.cooccurrence_table = None
+        self.vocab = set()
 
 
 def calculate_pmi(
     word1: str,
     word2: str,
-    collocations: Cooccurrences,
+    collocations: BaseCooccurrences,
     smoothing: float = 0.0,
     exp: float = 1,
     normalize: bool = False
@@ -77,7 +110,7 @@ def calculate_pmi(
 def calculate_logdice(
     word1: str,
     word2: str,
-    collocations: Cooccurrences,
+    collocations: BaseCooccurrences,
     smoothing: float = 0.0
 ) -> float:
     """
@@ -131,7 +164,7 @@ def calculate_logdice(
 def calculate_minsens(
     word1: str,
     word2: str,
-    collocations: Cooccurrences,
+    collocations: BaseCooccurrences,
     smoothing: float = 0.0
 ) -> float:
     """
@@ -181,12 +214,13 @@ def calculate_minsens(
 
 
 def all_collocations(
-    cooccurrences: Cooccurrences,
+    cooccurrences: BaseCooccurrences,
     word: str,
     method: Callable | str,
     min_count: int = 0,
     **kwargs
 ):
+
     if isinstance(method, str):
         if method in {'pmi', 'calculate_pmi'}:
             method = calculate_pmi
@@ -196,11 +230,6 @@ def all_collocations(
             method = calculate_minsens
         else:
             raise ValueError('Invalid Method String: Not supported.')
-
-    if method not in {
-        calculate_logdice, calculate_pmi, calculate_minsens
-    }:
-        raise ValueError('Invalid Method.')
 
     all_results = [
         (other_term, method(word, other_term, cooccurrences, **kwargs))

@@ -3,11 +3,12 @@ from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor
 from collections import defaultdict, Counter
 from functools import partial
-from _cooccurrence_shared import (
+from ._cooccurrence_shared import (
     calculate_logdice,
     calculate_minsens,
     calculate_pmi,
-    all_collocations
+    all_collocations,
+    BaseCooccurrences
 )
 
 __all__ = [
@@ -27,7 +28,7 @@ def _split_document_into_units(
     unit_separator: str | None = None
 ):
     """Split a document into units based on the unit_separator."""
-    if not unit_separator:
+    if unit_separator is None:
         return [document]
     split_doc = []
     unit = []
@@ -91,7 +92,7 @@ def _merge_cooccurrences(results):
     return merged
 
 
-class Cooccurrences():
+class Cooccurrences(BaseCooccurrences):
     """Class to count cooccurrences of words in a corpus."""
 
     def __init__(
@@ -100,29 +101,11 @@ class Cooccurrences():
         unit_separator: str | None = None,
         smoothing: float | None = None,
     ):
-        """Initialize the cooccurrence table with the params
-        used to count the cooccurrences.
-
-        If smoothing is provided, the cooccurrence table is smoothed
-        by adding the smoothing parameter to each cell.
-
-        Parameters:
-            window_size (int | None): The size of the window to use to count
-                cooccurrences. If None, the whole document or unit is used.
-                Defaults to 5.
-            unit_separator (str | None): If a unit_separator is provided, the
-                document is split into units using the separator. Can be used
-                e.g. to calculate cooccurrences paragraph-wide.
-                Defaults to None.
-            smoothing (float): The smoothing parameter to use when calculating
-                the cooccurrence table. Defaults to 0.0.
-        """
-        self.window_size = window_size
-        self.unit_separator = unit_separator
-        self.smoothing = smoothing
-        self._total_collocations = None
-        self.cooccurrence_table = None
-        self.vocab = set()
+        super().__init__(
+            window_size=window_size,
+            unit_separator=unit_separator,
+            smoothing=smoothing
+        )
 
     def count_cooccurrences(
         self,
