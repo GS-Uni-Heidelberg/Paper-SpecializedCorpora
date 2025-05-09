@@ -11,6 +11,7 @@ class BaseCooccurrences():
         window_size: int | None = 5,
         unit_separator: str | None = None,
         smoothing: float | None = None,
+        duplicate_counting: bool = True
     ):
         """Initialize the cooccurrence table with the params
         used to count the cooccurrences.
@@ -34,6 +35,7 @@ class BaseCooccurrences():
         self.smoothing = smoothing
         self._total_collocations = None
         self.cooccurrence_table = None
+        self.duplicate_counting = duplicate_counting
         self.vocab = set()
 
 

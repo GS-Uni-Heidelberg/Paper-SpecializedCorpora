@@ -47,7 +47,8 @@ def _split_document_into_units(
 def _process_document(
     document: list[str],
     window_size: int | None,
-    unit_separator: str | None
+    unit_separator: str | None,
+    duplicate_counting: bool = True
 ):
     """Process a single document in parallel"""
     units = _split_document_into_units(document, unit_separator)
@@ -55,11 +56,15 @@ def _process_document(
     local_cooccurrences = defaultdict(Counter)
 
     for unit in units:
+        seen_words_doc = set()
         for i, word in enumerate(unit):
+            if not duplicate_counting and word in seen_words_doc:
+                continue
+            seen_words_doc.add(word)
             seen_words = set()
 
-            if window_size:
-                # Windowed cooccurrences
+            if window_size:  # Windowed cooccurrences
+
                 start_idx = max(0, i - window_size)
                 end_idx = min(len(unit), i + window_size + 1)
 
@@ -68,8 +73,9 @@ def _process_document(
                         continue
                     seen_words.add(unit[j])
                     local_cooccurrences[word][unit[j]] += 1
-            else:
-                # Unit-wide cooccurrences
+
+            else:  # Unit-wide cooccurrences
+
                 for other_word in unit:
                     if other_word == word or other_word in seen_words:
                         continue
@@ -100,11 +106,13 @@ class Cooccurrences(BaseCooccurrences):
         window_size: int | None = 5,
         unit_separator: str | None = None,
         smoothing: float | None = None,
+        duplicate_counting: bool = True
     ):
         super().__init__(
             window_size=window_size,
             unit_separator=unit_separator,
-            smoothing=smoothing
+            smoothing=smoothing,
+            duplicate_counting=duplicate_counting
         )
 
     def count_cooccurrences(
@@ -117,7 +125,8 @@ class Cooccurrences(BaseCooccurrences):
         process_doc = partial(
             _process_document,
             window_size=self.window_size,
-            unit_separator=self.unit_separator
+            unit_separator=self.unit_separator,
+            duplicate_counting=self.duplicate_counting
         )
 
         # Use ProcessPoolExecutor for parallel processing
