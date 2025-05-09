@@ -73,6 +73,20 @@ def _clean_matches(found_docs: dict):
     return cleaned_matches
 
 
+def _clean_matches_pmw(found_docs: dict):
+    """Function to clean the matches of the wordlist
+    in the corpus. Removes duplicates and empty matches."""
+    cleaned_matches = {}
+    for doc_id, matches in found_docs.items():
+        cleaned_matches[doc_id] = list(
+            re.sub(r'__+', ' ', match).strip()
+            for match in matches[:-1] if match
+        )
+        cleaned_matches[doc_id].append(matches[-1])
+    return cleaned_matches
+
+
+
 def match_wordlist(
     corpus: Corpus,
     wordlist: list | set | dict,
@@ -142,9 +156,11 @@ def match_wordlist_pmw(
         pmw_score = (word_count * 1000000) / len(doc)
 
         if pmw_score >= min_pmw:
-            found_docs_id[i] = tuple(set(found_words))
+            found_docs_id[i] = found_words + [len(doc)]
+        else:
+            found_docs_id[i] = [len(doc)]
 
-    return _clean_matches(found_docs_id)
+    return _clean_matches_pmw(found_docs_id)
 
 
 def match_regex(
@@ -392,7 +408,7 @@ def eval_retrieval(
                 '2_erwähnung'
             })
         )
-        if i in found_docs:
+        if isinstance(found_docs.get(i, [False])[0], str):
             retrieved_classification.append(1)
         else:
             retrieved_classification.append(0)
@@ -438,7 +454,7 @@ def eval_retrieval(
 
 def eval_min(
     corpus: Corpus,
-    found_docs: list[int] | dict,
+    found_docs: dict,
     annotator: str = 'gold_label',
     min_min: int = 1,
     max_min: int = 10,
@@ -447,10 +463,10 @@ def eval_min(
 ):
 
     results = {}
-    for i in range(min_min, max_min + 1):
+    for min_ in range(min_min, max_min + 1):
         found_docs_min = {
             k: v for k, v in found_docs.items()
-            if len(v) >= i
+            if len(v) >= min_
         }
 
         gold_classification = []
@@ -476,7 +492,59 @@ def eval_min(
             output_dict=True
         )
 
-        results[i] = {
+        results[min_] = {
+            'precision': classification_report_['Relevant']['precision'],
+            'recall': classification_report_['Relevant']['recall'],
+            'f1-score': classification_report_['Relevant']['f1-score'],
+        }
+
+    return results
+
+
+def eval_min_pmw(
+    corpus: Corpus,
+    found_docs: dict,
+    annotator: str = 'gold_label',
+    min_min: int = 1,
+    max_min: int = 50000,
+    steps: int = 500,
+    mode: str = 'pooling',
+    topic: str = ['1_hauptthema']
+):
+
+    results = {}
+    for min_ in range(min_min, max_min + 1, steps):
+
+        gold_classification = []
+        retrieved_classification = []
+        for j, entry in enumerate(corpus):
+            _, metadata = entry
+            if mode == 'annotated':
+                if not metadata.get(annotator, False):
+                    continue
+            gold_classification.append(
+                int(metadata.get(annotator) in topic)
+            )
+            doc_info = found_docs.get(j, [1])
+            doclen = doc_info[-1]
+            if doclen > 0:
+                pmw_score = (len(doc_info) - 1) * 1000000 / doclen
+            else:
+                pmw_score = 0
+            if pmw_score >= min_:
+                retrieved_classification.append(1)
+            else:
+                retrieved_classification.append(0)
+
+        classification_report_ = classification_report(
+            gold_classification,
+            retrieved_classification,
+            target_names=['Not Relevant', 'Relevant'],
+            digits=4,
+            output_dict=True
+        )
+
+        results[min_] = {
             'precision': classification_report_['Relevant']['precision'],
             'recall': classification_report_['Relevant']['recall'],
             'f1-score': classification_report_['Relevant']['f1-score'],
