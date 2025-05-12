@@ -1,4 +1,4 @@
-from ..corpus import Corpus, FrequencyCorpus
+from ..corpus import Corpus
 from pathlib import Path
 
 

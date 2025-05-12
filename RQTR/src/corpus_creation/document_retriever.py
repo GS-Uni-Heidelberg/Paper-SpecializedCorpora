@@ -86,7 +86,6 @@ def _clean_matches_pmw(found_docs: dict):
     return cleaned_matches
 
 
-
 def match_wordlist(
     corpus: Corpus,
     wordlist: list | set | dict,
