@@ -117,7 +117,7 @@ def match_wordlist(
         else:
             found_words = pattern.findall(regex_doc)
             if len(found_words) >= min:
-                found_docs_id[i] = tuple(set(found_words))
+                found_docs_id[i] = tuple(found_words)
 
     return _clean_matches(found_docs_id)
 
@@ -381,9 +381,60 @@ def corpus_from_keys(
     return corpus
 
 
-def eval_retrieval(
+def eval_per_genre(
     corpus: Corpus,
     found_docs: list[int] | dict,
+    annotator: str,
+    genres: list[str] = [
+        'zeit.de',
+        'spektrum.de',
+        'informatik-aktuell.de',
+    ],
+    genre_key: str = 'url',
+    mode: str = 'pooling'
+):
+
+    genre_evals = {}
+
+    for genre in genres:
+        genre_docs = []
+        genre_found_docs = []
+        corpus_counter = 0
+        genre_metadata = []
+        for i, entry in enumerate(corpus):
+            doc, metadata = entry
+            if genre not in metadata.get(genre_key, ''):
+                continue
+            genre_docs.append(doc)
+            genre_metadata.append(metadata)
+            if i in found_docs:
+                genre_found_docs.append(corpus_counter)
+            corpus_counter += 1
+        if not genre_found_docs:
+            print(f'No documents found for genre {genre}.')
+            continue
+
+        genre_corpus = Corpus(
+            genre_docs, genre_metadata
+        )
+        genre_found_docs = {
+            i: ('he',) for i in genre_found_docs
+        }
+        print(f'Genre: {genre}')
+        genre_evals[genre] = eval_retrieval(
+            genre_corpus,
+            found_docs=genre_found_docs,
+            annotator=annotator,
+            mode=mode
+        )
+        print()
+
+    return genre_evals
+
+
+def eval_retrieval(
+    corpus: Corpus,
+    found_docs: dict,
     annotator: str,
     mode: str = 'pooling'
 ):
@@ -408,10 +459,16 @@ def eval_retrieval(
                 '2_erwähnung'
             })
         )
+        # try:
         if isinstance(found_docs.get(i, [False])[0], str):
             retrieved_classification.append(1)
         else:
             retrieved_classification.append(0)
+        # except (IndexError, AttributeError, TypeError):
+        #     if found_docs.get(i, False):
+        #         retrieved_classification.append(1)
+        #     else:
+        #         retrieved_classification.append(0)
 
     # Print classification report
     print('Classification report for main topic:')
