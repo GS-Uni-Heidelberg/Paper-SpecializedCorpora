@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from .. import token_util as utils
+from ..misc import token_util as utils
 import pandas as pd
 from ..corpus import Corpus
 from typing import Iterable, Callable

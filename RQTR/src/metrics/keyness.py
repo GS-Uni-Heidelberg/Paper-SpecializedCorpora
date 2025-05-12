@@ -2,7 +2,7 @@ import numpy as np
 import math
 from scipy import stats
 from ..corpus import FrequencyCorpus
-from ..token_util import begin_end_stopword
+from ..misc.token_util import begin_end_stopword
 from typing import Callable
 import pandas as pd
 import sys
