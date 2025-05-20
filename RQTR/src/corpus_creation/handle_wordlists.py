@@ -44,8 +44,8 @@ def remove_redundant(df: pd.DataFrame, check_col='Term') -> pd.DataFrame:
 
 
 def top_x(n, col, df):
-    """
-    Return top n rows sorted by col, including all tied values at the cutoff.
+    """Return top n rows sorted by col,
+    including all tied values at the cutoff.
 
     Parameters:
     - n: int, number of top rows to return
@@ -66,3 +66,45 @@ def top_x(n, col, df):
 
     # Return all rows with values >= cutoff_value
     return sorted_df[sorted_df[col] >= cutoff_value]
+
+
+def top_x_with_core(
+    n, col, df, core_terms,
+    term_col='Term'
+):
+    """Return top n rows sorted by col,
+    including all tied values at the cutoff.
+
+    Make sure that core terms are included in the result
+    but do not count towards the n.
+    """
+    # Drop core term rows
+    df_no_core = df[~df[term_col].isin(core_terms)]
+
+    # Get the top n rows from the non-core terms
+    top_n_df = top_x(n, col, df_no_core)
+
+    # Get existing core terms from the dataframe
+    core_terms_df = df[df[term_col].isin(core_terms)]
+
+    # Add any missing core terms with col=0
+    missing_terms = set(core_terms) - set(df[term_col])
+    if missing_terms:
+        missing_df = pd.DataFrame(columns=df.columns)
+
+        for term in missing_terms:
+            new_row = {col_name: 0 for col_name in df.columns}
+            new_row[term_col] = term
+            missing_df = pd.concat(
+                [missing_df, pd.DataFrame([new_row])], ignore_index=True
+            )
+
+        core_terms_df = pd.concat(
+            [core_terms_df, missing_df], ignore_index=True
+        )
+
+    result_df = pd.concat([top_n_df, core_terms_df], ignore_index=True)
+    result_df.sort_values(by=col, ascending=False, inplace=True)
+    result_df.reset_index(inplace=True, drop=True)
+
+    return result_df
