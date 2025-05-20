@@ -62,8 +62,6 @@ def _worddict_edit(
 
 
 def _clean_matches(found_docs: dict):
-    """Function to clean the matches of the wordlist
-    in the corpus. Removes duplicates and empty matches."""
     cleaned_matches = {}
     for doc_id, matches in found_docs.items():
         cleaned_matches[doc_id] = tuple(
@@ -74,8 +72,6 @@ def _clean_matches(found_docs: dict):
 
 
 def _clean_matches_pmw(found_docs: dict):
-    """Function to clean the matches of the wordlist
-    in the corpus. Removes duplicates and empty matches."""
     cleaned_matches = {}
     for doc_id, matches in found_docs.items():
         cleaned_matches[doc_id] = list(
@@ -194,6 +190,41 @@ def match_regex(
             found_docs_id[i] = tuple(hits)
 
     return _clean_matches(found_docs_id)
+
+
+def match_regex_pmw(
+    corpus: Corpus,
+    regex: str | re.Pattern,
+    text_key: str = 'text_deduped',
+    min_pmw: int = 1000,
+    unique: bool = False,
+):
+
+    found_docs_id = {}
+    for i, entry in enumerate(corpus):
+
+        _, metadata = entry
+
+        try:
+            text = metadata.get(text_key, '')
+        except KeyError:
+            raise KeyError(
+                f"Key '{text_key}' not found in metadata."
+            )
+        if not isinstance(text, str):
+            raise ValueError(
+                f"Text must be a string, but got {type(text)}."
+            )
+
+        tokens_len = len(re.findall(r'\b\w+\b', text))
+        hits = re.findall(regex, text)
+        if unique:
+            hits = set(hits)
+        pmw_score = (len(hits) * 1000000) / tokens_len
+        if pmw_score >= min_pmw:
+            found_docs_id[i] = hits + [tokens_len]
+
+    return _clean_matches_pmw(found_docs_id)
 
 
 def match_weighted_wordlist(
