@@ -1,0 +1,24 @@
+('künstlich', 'Intelligenz')
+KI
+Algorithm[a-z]{0,2}
+Roboter
+Robotik
+('autonom[a-z]{0,2}', 'Waffensystem[a-z]{0,2}')
+('machine', 'learning')
+('maschinell[a-z]{0,2}', 'Lernen')
+('Large', 'Language', 'Model')
+LLM
+('Artificial', 'Intelligence')
+AI
+Chat.?GPT[0-9a-zA-Z\-]{0,4}
+Gemini
+llama
+('deep', 'fake')
+chatbot
+griefbot
+deathbot
+[A-Za-z]*bot
+('digital', 'afterlife')
+('unsupervis[a-z]{0,2}', 'learning')
+('artificial', 'general', 'intelligence')
+AGI
