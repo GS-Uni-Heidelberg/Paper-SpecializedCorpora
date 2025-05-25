@@ -2,7 +2,7 @@ env
 .env
 myenv/
 Scrape/
-HTML-extraction/
+scrape/
 
 __pycache__/
 .pytest_cache/
@@ -16,3 +16,6 @@ playground.ipynb
 *.png
 batches/
 pseudocode.md
+
+# We ended up not reporting these findings
+embeddings.ipynb
