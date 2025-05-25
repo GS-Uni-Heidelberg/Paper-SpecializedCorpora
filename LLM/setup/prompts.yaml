@@ -1,0 +1,60 @@
+zero_shot:
+    nshot: 0
+    sysprompt: Du bist ein Assistent für die Sammlung und Klassifikation von Texten.
+    userprompt_begin: |+
+        Ich stelle eine Sammlung aus Artikeln über das Thema 'KI' zusammen. Aber ich habe tausende Texte und kann nicht alle lesen.
+        Deine Aufgabe ist es, Texte zu lesen und zu beurteilen, ob es um das Thema 'KI' laut meiner Definition geht oder nicht.
+
+        ## Definition: KI
+        Künstliche Intelligenz ist die Fähigkeit einer Maschine, menschliche Fähigkeiten wie logisches Denken, Lernen, Planen und Kreativität zu imitieren. KI ermöglicht es technischen Systemen, ihre Umwelt wahrzunehmen, mit dem Wahrgenommenen umzugehen und Probleme zu lösen, um ein bestimmtes Ziel zu erreichen. Der Computer empfängt Daten (die bereits über eigene Sensoren, zum Beispiel eine Kamera, vorbereitet oder gesammelt wurden), verarbeitet sie und reagiert.
+        KI-Systeme sind in der Lage, ihr Handeln anzupassen, indem sie die Folgen früherer Aktionen analysieren und autonom arbeiten.
+
+        ### Beispiele KI-Definition
+        + Generatives Sprachmodell: Hat aus Daten gelernt, intelligent Sprache zu produzieren. Ist (fast) immer KI.
+        + Schachbot: Imitiert menschliche, taktische Intelligenz. Zählt zu KI.
+        + Roboter: Viele Roboter verfolgen simple Bewegungsabläufe (in Fabriken) oder werden ferngesteuert. Diese sind keine KI. Nur autonome oder lernende Roboter sind KI.
+        + Algorithmus, Daten: Meistens tauchen diese Begriffe außerhalb von KI auf. Die meisten Algorithmen sind keine KI. Daten werden nicht nur zum Trainieren von KI verwendet.
+
+        ## Klassifikation: Kategorien
+        Weise dem Text genau eine von drei Kategorien zu:
+        1_hauptthema: Das Hauptthema des Artikels ist KI. Es geht viel und an vielen Stellen um KI. Entscheidungshilfe: Wenn man die Phrasen über KI aus dem Text nimmt, ergibt der Text keinen Sinn mehr.
+        2_nebenthema: KI ist nicht das Hauptthema des Artikels. Aber KI wird als Teil des Hauptthemas diskutiert. Entscheidungshilfe: Wenn man die Phrasen über KI aus dem Text nimmt, ergibt der Text noch Sinn, aber es fehlt ein interessanter Aspekt.
+        3_kein_thema: KI wird gar nicht erwähnt. Oder KI wird nur ganz kurz genannt, aber inhaltlich nicht darauf eingegangen. Es wird nichts Wichtiges, nichts Interessantes über KI gesagt. Es wird nur als Beispiel, in einer Auflistung, einer Bezeichnung usw. genannt. Entscheidungshilfe: Wenn man die Phrasen über KI aus dem Text nimmt, ergibt der Text noch Sinn, und es ändert sich inhaltlich (fast) nichts.
+
+        <text>
+    userprompt_end: |+
+        </text>
+
+
+three_shot:
+    nshot: 3
+    sysprompt: Du bist ein Assistent für die Sammlung und Klassifikation von Texten.
+    userprompt_begin: |+
+        Ich stelle eine Sammlung aus Artikeln über das Thema 'KI' zusammen. Aber ich habe tausende Texte und kann nicht alle lesen.
+        Deine Aufgabe ist es, Texte zu lesen und zu beurteilen, ob es um das Thema 'KI' laut meiner Definition geht oder nicht.
+
+        ## Definition: KI
+        Künstliche Intelligenz ist die Fähigkeit einer Maschine, menschliche Fähigkeiten wie logisches Denken, Lernen, Planen und Kreativität zu imitieren. KI ermöglicht es technischen Systemen, ihre Umwelt wahrzunehmen, mit dem Wahrgenommenen umzugehen und Probleme zu lösen, um ein bestimmtes Ziel zu erreichen. Der Computer empfängt Daten (die bereits über eigene Sensoren, zum Beispiel eine Kamera, vorbereitet oder gesammelt wurden), verarbeitet sie und reagiert.
+        KI-Systeme sind in der Lage, ihr Handeln anzupassen, indem sie die Folgen früherer Aktionen analysieren und autonom arbeiten.
+
+        ### Beispiele KI-Definition
+        + Generatives Sprachmodell: Hat aus Daten gelernt, intelligent Sprache zu produzieren. Ist (fast) immer KI.
+        + Schachbot: Imitiert menschliche, taktische Intelligenz. Zählt zu KI.
+        + Roboter: Viele Roboter verfolgen simple Bewegungsabläufe (in Fabriken) oder werden ferngesteuert. Diese sind keine KI. Nur autonome oder lernende Roboter sind KI.
+        + Algorithmus, Daten: Meistens tauchen diese Begriffe außerhalb von KI auf. Die meisten Algorithmen sind keine KI. Daten werden nicht nur zum Trainieren von KI verwendet.
+
+        ## Klassifikation: Kategorien
+        Weise dem Text genau eine von drei Kategorien zu:
+        1_hauptthema: Das Hauptthema des Artikels ist KI. Es geht viel und an vielen Stellen um KI. Entscheidungshilfe: Wenn man die Phrasen über KI aus dem Text nimmt, ergibt der Text keinen Sinn mehr.
+        2_nebenthema: KI ist nicht das Hauptthema des Artikels. Aber KI wird als Teil des Hauptthemas diskutiert. Entscheidungshilfe: Wenn man die Phrasen über KI aus dem Text nimmt, ergibt der Text noch Sinn, aber es fehlt ein interessanter Aspekt.
+        3_kein_thema: KI wird gar nicht erwähnt. Oder KI wird nur ganz kurz genannt, aber inhaltlich nicht darauf eingegangen. Es wird nichts Wichtiges, nichts Interessantes über KI gesagt. Es wird nur als Beispiel, in einer Auflistung, einer Bezeichnung usw. genannt. Entscheidungshilfe: Wenn man die Phrasen über KI aus dem Text nimmt, ergibt der Text noch Sinn, und es ändert sich inhaltlich (fast) nichts.
+
+        ### Beispiele Klassifikation
+        + Ein Text hat den Titel 'Google veröffentlicht neues KI-Modell' und der Text behandelt das 'KI-Modell' -> 1_hauptthema
+        + Ein Text hat den Absatz: 'Mit den Regionalen Kompetenzzentren der Arbeitsforschung fördert das BMBF Projekte, die mit einem Fokus auf die Stärken ihrer jeweiligen Regionen als zentrale Anlaufstelle in der Wissenschaft etabliert werden. Sie richten ihre Forschung auf die Herausforderungen in den regionalen Arbeitswelten aus und unterstützen den Transfer in die betriebliche Praxis und die Breite der Gesellschaft. In der ersten Wettbewerbsrunde lag der Schwerpunkt auf der Gestaltung des Einsatzes von Methoden und Werkzeugen der künstlichen Intelligenz (KI) in der Arbeitswelt.'
+        Der Text behandelt aber vor allem BMBF-Forschungsprojekte. -> 2_nebenthema
+        + Ein Text enthält den Satz: 'KI, Blockchain und Videospiele setzen alle auf leistungsfähige Grafikkarten.'. Der Text beschreibt den Aufbau von Grafikkarten. -> 3_kein_thema
+
+        <text>
+    userprompt_end: |+
+        </text>
