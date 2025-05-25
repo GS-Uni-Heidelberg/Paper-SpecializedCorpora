@@ -1,4 +1,5 @@
 env
+.env
 myenv/
 Scrape/
 HTML-extraction/
@@ -8,3 +9,10 @@ __pycache__/
 
 TODO
 playground.ipynb
+
+*.zip
+.vscode
+*.csv#
+*.png
+batches/
+pseudocode.md
