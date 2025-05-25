@@ -1,0 +1,77 @@
+example:
+    irrelevant_subdomains:
+    metadata_keep:
+    checker_functions:
+    other_info_funcs:
+
+infoakt-themkorp:
+    irrelevant_subdomains:
+    metadata_keep:
+        - og:title
+        - og:description
+    checker_functions:
+        - infakt_is_february
+    other_info_funcs:
+        - get_h1
+        - get_h2
+    removal:
+        - func:spektrum_checker
+
+zeit-themkorp:
+    irrelevant_subdomains:
+        - \#comments
+        - \#print
+        - zeit-magazin/
+        - /zett/
+        - kaenguru-comics
+        - /sport/
+        - /campus/
+        - /seite-2
+        - /seite-3
+    checker_functions:
+        - is_february
+        - zeit_dpa
+    metadata_keep:
+        - og:url
+        - og:title
+        - og:description
+        - og:type
+        - article:content_tier
+        - zeit:kicker
+        - date
+        - last-modified
+    other_info_funcs:
+        - get_h1
+        - get_h2
+    removal:
+        - lang:tr,en
+        - len:<500
+        - avg_parlen:<80
+        - func:dpa-remover,zeit-paywall,seite-in-url,komplettansicht(in playground)
+
+spektrum-themkorp:
+    irrelevant_subdomains:
+        - /inhaltsverzeichnis/
+        - media.php
+        - \&skip=
+        - \.jpeg
+        - /thema/
+        - /pdf/
+        - /neuerscheinung/
+        - /artikel-archiv/
+    metadata_keep:
+        - og:title
+        - og:type
+        - og:description
+        - og:url
+        - article:opinion
+        - article:content_tier
+    checker_functions:
+        - is_february
+    other_info_funcs:
+        - get_h1
+        - get_h2
+    removal:
+        - length:<1200
+        - avg_parlen:<200
+        - func:spektrum_checker
