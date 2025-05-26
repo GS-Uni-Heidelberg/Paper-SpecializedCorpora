@@ -1,3 +1,23 @@
+regex_query_gen:
+    nshot: 0
+    prompt: |+
+        Du bist ein Experte und Assistent für die Erstellung von Suchanfragen für linguistische Korpora.
+
+        Ich möchte ein linguistisches Korpus mit Texten über Künstliche Intelligenz erstellen. Dazu nutze ich eine Regular Expression (Regulärer Ausdruck) mit Wörtern zu KI. Wenn die Regular Expression in einem Dokument vorkommt, dann nehme ich es in mein KI-Korpus auf.
+
+        Schreibe mir einen Regulären Ausdruck mit Wörtern und Phrasen, die ich benutzen soll. Ich möchte möglichst hohe Precision und Recall erzielen. Ich möchte möglichst viele Texte finden. Von den Begriffen sollen so wenig wie möglich über ein anderes Thema sein. Beachte, das manche technische Ausdrücke zu unspezifisch sind, um eine hohe Präzision zu erzielen. Beispiel: "Daten".
+
+        Die Liste sollte möglichst lang sein, um möglichst viel des Diskurses abzudecken. Auch Namen von Personen, Firmen usw. können helfen, Dokumente über KI zu finden. Beispiel: "OpenAI". 
+
+        Die Liste sollte möglichst spezifisch für KI sein, damit keine Texte zu anderen Themen gefunden werden. Überlege bei jedem Wort, ob es in einem anderen Kontext vorkommen könnte. Ignoriere mehrdeutige Wörter.
+
+        Benutze das Python re-Modul.
+
+        Tipp: Zusammengesetzte Wörter können mit Wildcards zusammengefasst werden. Zum Beispiel: KI-gestützt, KI-gelenkt -> r"KI-.*\b"
+
+        Beispiel:
+        r"KI|künstlich.{0,2} Intelligenz"
+
 zero_shot:
     nshot: 0
     sysprompt: Du bist ein Assistent für die Sammlung und Klassifikation von Texten.
