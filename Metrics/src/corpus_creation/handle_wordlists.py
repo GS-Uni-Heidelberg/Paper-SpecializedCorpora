@@ -43,7 +43,7 @@ def remove_redundant(df: pd.DataFrame, check_col='Term') -> pd.DataFrame:
     return df_copy
 
 
-def top_x(n, col, df):
+def top_x(n, col, df, term_col='Term'):
     """Return top n rows sorted by col,
     including all tied values at the cutoff.
 
@@ -56,7 +56,9 @@ def top_x(n, col, df):
     - DataFrame with top n rows plus any tied values at the cutoff
     """
     # Sort the dataframe by the specified column
-    sorted_df = df.sort_values(by=col, ascending=False).reset_index(drop=True)
+    sorted_df = df.sort_values(
+        by=[col, term_col], ascending=False
+    ).reset_index(drop=True)
 
     if len(sorted_df) <= n:
         return sorted_df
@@ -82,7 +84,7 @@ def top_x_with_core(
     df_no_core = df[~df[term_col].isin(core_terms)]
 
     # Get the top n rows from the non-core terms
-    top_n_df = top_x(n, col, df_no_core)
+    top_n_df = top_x(n, col, df_no_core, term_col)
 
     # Get existing core terms from the dataframe
     core_terms_df = df[df[term_col].isin(core_terms)]
@@ -104,7 +106,8 @@ def top_x_with_core(
         )
 
     result_df = pd.concat([top_n_df, core_terms_df], ignore_index=True)
-    result_df.sort_values(by=col, ascending=False, inplace=True)
+    result_df.sort_values(
+        by=[col, term_col], ascending=False, inplace=True)
     result_df.reset_index(inplace=True, drop=True)
 
     return result_df

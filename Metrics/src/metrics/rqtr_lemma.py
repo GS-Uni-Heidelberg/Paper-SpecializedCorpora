@@ -352,7 +352,7 @@ def cooccurence_to_metric(
                 f"Please use 'qtr', 'rqtr', or 'rqtrn'."
             )
 
-    df = df.sort_values(by=metric.upper(), ascending=False)
+    df = df.sort_values(by=[metric.upper(), 'Term'], ascending=False)
     df = df.reset_index(drop=True)
 
     return df

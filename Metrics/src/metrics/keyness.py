@@ -236,7 +236,7 @@ def keyword_list_ngram(
         keynesses[word] = keyness_score
 
     df = pd.DataFrame(keynesses.items(), columns=['Term', 'Keyness'])
-    df = df.sort_values(by='Keyness', ascending=False)
+    df = df.sort_values(by=['Keyness', 'Term'], ascending=False)
 
     return df
 
@@ -289,7 +289,7 @@ def keyword_list(
         )
         df = pd.concat([df, n_df], ignore_index=True)
 
-    df = df.sort_values(by='Keyness', ascending=False)
+    df = df.sort_values(by=['Keyness', 'Term'], ascending=False)
     df = df.reset_index(drop=True)
 
     return df
