@@ -36,6 +36,7 @@ generiert
 s.
 selbstfahrend
 Illustration
+Doktorande
 Altman
 krönen
 Chatbot
@@ -47,6 +48,5 @@ Engineering
 Softwarekonzern
 Rechenleistung
 KI-Entwicklung
-unbedenklich
 ('künstlich', 'Intelligenz')
 ('KI',)

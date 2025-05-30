@@ -24,10 +24,10 @@ Kunst
 erkennen
 mithilfe
 Computer
-Bereich
 KI-System
-Wirklichkeit
 Digitalisierung
+Wirklichkeit
+Bereich
 verarbeiten
 Einsatz
 Netz
@@ -38,15 +38,15 @@ Künstler
 Arbeitsweise
 Meta
 programmieren
-dank
 Unternehmen
+dank
 generiert
 Datum
 Bing
 verbessern
 Training
-nutzen
-Möglichkeit
 System
+Möglichkeit
+Nutzer
 ('künstlich', 'Intelligenz')
 ('KI',)
