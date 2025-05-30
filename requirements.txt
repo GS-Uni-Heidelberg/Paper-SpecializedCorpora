@@ -1,4 +1,4 @@
-anthropic==0.52.0
+anthropic==0.52.1
 beautifulsoup4==4.13.4
 html2text==2024.2.26
 htmldate==1.9.3
@@ -7,15 +7,19 @@ langdetect==1.0.9
 matplotlib==3.10.3
 nltk==3.9.1
 numpy==2.2.6
+openai==1.82.1
 pandas==2.2.3
+playwright==1.46.0
+pydantic==2.11.5
 pytest==8.3.5
 python-dotenv==1.1.0
 PyYAML==6.0.2
+Requests==2.32.3
 scikit_learn==1.6.1
 scipy==1.15.3
 seaborn==0.13.2
 sentence_transformers==4.1.0
 spacy==3.8.4
-tiktoken==0.9.0
 tqdm==4.66.5
 trafilatura==2.0.0
+typer==0.16.0
