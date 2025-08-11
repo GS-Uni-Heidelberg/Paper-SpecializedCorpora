@@ -1,4 +1,5 @@
 import pandas as pd
+import ast
 
 
 def remove_redundant(df: pd.DataFrame, check_col='Term') -> pd.DataFrame:
@@ -111,3 +112,29 @@ def top_x_with_core(
     result_df.reset_index(inplace=True, drop=True)
 
     return result_df
+
+
+def read_wordlist(path: str) -> pd.DataFrame:
+    with open('wordlists/queries/coll-Absatz-npmi.txt', 'r') as f:
+        query_s = f.readlines()
+
+    query = [
+        ast.literal_eval(q)
+        if q.startswith('(') and q.endswith(')\n')
+        else q.strip()
+        for q in query_s
+    ]
+
+    df = pd.DataFrame(query, columns=['Term'])
+
+    return df
+
+
+def query_string(query: pd.DataFrame, col='Term', sep='|') -> str:
+    strings = []
+    for q in query[col]:
+        if isinstance(q, tuple):
+            strings.append(' '.join(q))
+        elif isinstance(q, str):
+            strings.append(q)
+    return f' {sep} '.join(strings)
